@@ -228,8 +228,7 @@ jobs:
           RELEASE_NAME: Graphene ${{ needs.build.outputs.mod_version }}
           RELEASE_TARGET: ${{ github.sha }}
         run: |
-          shopt -s nullglob
-          release_files=(release-assets/*.jar)
+          mapfile -t release_files < <(find release-assets -type f -name '*.jar' | sort)
 
           if [ ${#release_files[@]} -eq 0 ]; then
             echo "Expected at least one release artifact in release-assets/." >&2
