@@ -226,9 +226,7 @@ jobs:
         with:
           name: github-packages-publication
           if-no-files-found: error
-          path: |
-            build/libs
-            build/publications
+          path: build/libs
 
       - name: capture maven central bundle
         if: steps.targets.outputs.publish_maven == 'true'
@@ -272,11 +270,6 @@ jobs:
         run: |
           if [ ! -d build/libs ]; then
             echo "Expected build/libs to exist after downloading publication artifacts." >&2
-            exit 1
-          fi
-
-          if [ ! -d build/publications ]; then
-            echo "Expected build/publications to exist after downloading publication artifacts." >&2
             exit 1
           fi
 
