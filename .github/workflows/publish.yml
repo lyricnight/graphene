@@ -4,14 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       publish_target:
-        description: Where to publish artifacts
+        description: Which publish and release actions to run
         required: true
-        default: maven+github
+        default: all
         type: choice
         options:
-          - maven+github
-          - github
-          - maven
+          - all
+          - publish-github
+          - publish-maven
+          - release-github
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -21,10 +26,12 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     outputs:
-      publish_github: ${{ steps.targets.outputs.publish_github }}
+      publish_github_packages: ${{ steps.targets.outputs.publish_github_packages }}
       publish_maven: ${{ steps.targets.outputs.publish_maven }}
+      release_github: ${{ steps.targets.outputs.release_github }}
       mod_version: ${{ steps.metadata.outputs.mod_version }}
       tag: ${{ steps.metadata.outputs.tag }}
+      release_target: ${{ steps.metadata.outputs.release_target }}
     steps:
       - name: checkout repository
         uses: actions/checkout@v6
@@ -49,17 +56,25 @@ jobs:
           PUBLISH_TARGET: ${{ inputs.publish_target }}
         run: |
           case "${PUBLISH_TARGET}" in
-            maven+github)
-              echo 'publish_github=true' >> "$GITHUB_OUTPUT"
+            all)
+              echo 'publish_github_packages=true' >> "$GITHUB_OUTPUT"
               echo 'publish_maven=true' >> "$GITHUB_OUTPUT"
+              echo 'release_github=true' >> "$GITHUB_OUTPUT"
               ;;
-            github)
-              echo 'publish_github=true' >> "$GITHUB_OUTPUT"
+            publish-github)
+              echo 'publish_github_packages=true' >> "$GITHUB_OUTPUT"
               echo 'publish_maven=false' >> "$GITHUB_OUTPUT"
+              echo 'release_github=false' >> "$GITHUB_OUTPUT"
               ;;
-            maven)
-              echo 'publish_github=false' >> "$GITHUB_OUTPUT"
+            publish-maven)
+              echo 'publish_github_packages=false' >> "$GITHUB_OUTPUT"
               echo 'publish_maven=true' >> "$GITHUB_OUTPUT"
+              echo 'release_github=false' >> "$GITHUB_OUTPUT"
+              ;;
+            release-github)
+              echo 'publish_github_packages=false' >> "$GITHUB_OUTPUT"
+              echo 'publish_maven=false' >> "$GITHUB_OUTPUT"
+              echo 'release_github=true' >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unsupported publish target: ${PUBLISH_TARGET}" >&2
@@ -73,12 +88,14 @@ jobs:
           mod_version="$(awk -F= '/^mod_version=/{print $2}' gradle.properties)"
           archives_base_name="$(awk -F= '/^archives_base_name=/{print $2}' gradle.properties)"
           tag="v${mod_version}"
+          release_target="$(git rev-parse HEAD)"
           release_jar="build/libs/${archives_base_name}-${mod_version}.jar"
           sources_jar="build/libs/${archives_base_name}-${mod_version}-sources.jar"
 
           echo "mod_version=${mod_version}" >> "$GITHUB_OUTPUT"
           echo "archives_base_name=${archives_base_name}" >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "release_target=${release_target}" >> "$GITHUB_OUTPUT"
           echo "release_jar=${release_jar}" >> "$GITHUB_OUTPUT"
           echo "sources_jar=${sources_jar}" >> "$GITHUB_OUTPUT"
 
@@ -106,7 +123,7 @@ jobs:
       - name: build graphene
         env:
           PUBLISH_MAVEN: ${{ steps.targets.outputs.publish_maven }}
-          PUBLISH_GITHUB: ${{ steps.targets.outputs.publish_github }}
+          PUBLISH_GITHUB_PACKAGES: ${{ steps.targets.outputs.publish_github_packages }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -116,7 +133,7 @@ jobs:
         run: |
           gradle_tasks=(clean build)
 
-          if [ "${PUBLISH_GITHUB}" = "true" ]; then
+          if [ "${PUBLISH_GITHUB_PACKAGES}" = "true" ]; then
             gradle_tasks+=(publishMavenJavaPublicationToGitHubPackagesRepository)
           fi
 
@@ -169,7 +186,7 @@ jobs:
           )
 
       - name: build release notes
-        if: steps.targets.outputs.publish_github == 'true'
+        if: steps.targets.outputs.release_github == 'true'
         env:
           RELEASE_TAG: ${{ steps.metadata.outputs.tag }}
         run: |
@@ -192,7 +209,7 @@ jobs:
           } > release-notes.md
 
       - name: capture github release artifacts
-        if: steps.targets.outputs.publish_github == 'true'
+        if: steps.targets.outputs.release_github == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: github-release-assets
@@ -212,7 +229,7 @@ jobs:
 
   publish-github:
     needs: build
-    if: needs.build.outputs.publish_github == 'true'
+    if: needs.build.outputs.release_github == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: download release assets
@@ -224,9 +241,10 @@ jobs:
       - name: create github release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.build.outputs.tag }}
           RELEASE_NAME: Graphene ${{ needs.build.outputs.mod_version }}
-          RELEASE_TARGET: ${{ github.sha }}
+          RELEASE_TARGET: ${{ needs.build.outputs.release_target }}
         run: |
           mapfile -t release_files < <(find release-assets -type f -name '*.jar' | sort)
 
