@@ -18,12 +18,10 @@ concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   build:
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     outputs:
       publish_github_packages: ${{ steps.targets.outputs.publish_github_packages }}
@@ -46,9 +44,20 @@ jobs:
         with:
           java-version: '21'
           distribution: 'microsoft'
+          cache: gradle
 
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
+
+      - name: validate workflow ref
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "${GITHUB_REF}" != 'refs/heads/main' ]; then
+            echo "This workflow can only run from refs/heads/main. Current ref: ${GITHUB_REF} (${GITHUB_REF_NAME})" >&2
+            exit 1
+          fi
 
       - name: resolve publish targets
         id: targets
@@ -93,7 +102,6 @@ jobs:
           sources_jar="build/libs/${archives_base_name}-${mod_version}-sources.jar"
 
           echo "mod_version=${mod_version}" >> "$GITHUB_OUTPUT"
-          echo "archives_base_name=${archives_base_name}" >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "release_target=${release_target}" >> "$GITHUB_OUTPUT"
           echo "release_jar=${release_jar}" >> "$GITHUB_OUTPUT"
@@ -123,9 +131,6 @@ jobs:
       - name: build graphene
         env:
           PUBLISH_MAVEN: ${{ steps.targets.outputs.publish_maven }}
-          PUBLISH_GITHUB_PACKAGES: ${{ steps.targets.outputs.publish_github_packages }}
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           MAVEN_GPG_PRIVATE_KEY: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
@@ -133,11 +138,7 @@ jobs:
         run: |
           gradle_tasks=(clean build)
 
-          if [ "${PUBLISH_GITHUB_PACKAGES}" = "true" ]; then
-            gradle_tasks+=(publishMavenJavaPublicationToGitHubPackagesRepository)
-          fi
-
-          if [ "${PUBLISH_MAVEN}" = "true" ]; then
+          if [ "${PUBLISH_MAVEN}" = 'true' ]; then
             gradle_tasks+=(publishMavenJavaPublicationToMavenCentralRepository)
           fi
 
@@ -219,6 +220,16 @@ jobs:
             ${{ steps.metadata.outputs.release_jar }}
             ${{ steps.metadata.outputs.sources_jar }}
 
+      - name: capture github packages publication artifacts
+        if: steps.targets.outputs.publish_github_packages == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: github-packages-publication
+          if-no-files-found: error
+          path: |
+            build/libs
+            build/publications
+
       - name: capture maven central bundle
         if: steps.targets.outputs.publish_maven == 'true'
         uses: actions/upload-artifact@v7
@@ -227,9 +238,59 @@ jobs:
           if-no-files-found: error
           path: build/central-portal/central-bundle.zip
 
-  publish-github:
+  publish-github-packages:
+    needs: build
+    if: needs.build.outputs.publish_github_packages == 'true'
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'microsoft'
+          cache: gradle
+
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: download github packages publication artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: github-packages-publication
+          path: .
+
+      - name: verify github packages publication artifacts
+        run: |
+          if [ ! -d build/libs ]; then
+            echo "Expected build/libs to exist after downloading publication artifacts." >&2
+            exit 1
+          fi
+
+          if [ ! -d build/publications ]; then
+            echo "Expected build/publications to exist after downloading publication artifacts." >&2
+            exit 1
+          fi
+
+      - name: publish to github packages
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew publishMavenJavaPublicationToGitHubPackagesRepository
+
+  release-github:
     needs: build
     if: needs.build.outputs.release_github == 'true'
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     steps:
       - name: download release assets
@@ -237,6 +298,22 @@ jobs:
         with:
           name: github-release-assets
           path: release-assets
+
+      - name: fail if github release already exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "GitHub release '${RELEASE_TAG}' already exists. Refusing to create a duplicate release." >&2
+            exit 1
+          fi
+
+          if git ls-remote --tags "https://github.com/${GH_REPO}.git" "refs/tags/${RELEASE_TAG}" | grep -q .; then
+            echo "Git tag '${RELEASE_TAG}' already exists remotely. Refusing to create a release for an existing tag." >&2
+            exit 1
+          fi
 
       - name: create github release
         env:
@@ -253,6 +330,11 @@ jobs:
             exit 1
           fi
 
+          if [ ! -f release-assets/release-notes.md ]; then
+            echo "Expected release notes file 'release-assets/release-notes.md' to exist." >&2
+            exit 1
+          fi
+
           gh release create "${RELEASE_TAG}" "${release_files[@]}" \
             --target "${RELEASE_TARGET}" \
             --title "${RELEASE_NAME}" \
@@ -261,6 +343,8 @@ jobs:
   publish-maven:
     needs: build
     if: needs.build.outputs.publish_maven == 'true'
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     steps:
       - name: download maven central bundle
