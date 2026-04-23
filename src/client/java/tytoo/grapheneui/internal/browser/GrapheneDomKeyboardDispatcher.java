@@ -7,6 +7,7 @@ import tytoo.grapheneui.internal.input.keyboard.GrapheneDomKeyData;
 import tytoo.grapheneui.internal.input.keyboard.GrapheneDomKeyboardMapper;
 import tytoo.grapheneui.internal.input.keyboard.GrapheneInputLockState;
 import tytoo.grapheneui.internal.logging.GrapheneDebugLogger;
+import tytoo.grapheneui.internal.platform.GraphenePlatform;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -14,6 +15,11 @@ import java.util.Set;
 
 final class GrapheneDomKeyboardDispatcher {
     private static final long SYNTHETIC_TYPED_DUPLICATE_WINDOW_MS = 250L;
+    private static final int DEVTOOLS_MODIFIER_ALT = 1;
+    private static final int DEVTOOLS_MODIFIER_CONTROL = 2;
+    private static final int DEVTOOLS_MODIFIER_META = 4;
+    private static final int DEVTOOLS_MENU_MODIFIERS = DEVTOOLS_MODIFIER_ALT | DEVTOOLS_MODIFIER_CONTROL
+            | DEVTOOLS_MODIFIER_META;
     private static final String DEVTOOLS_METHOD_DISPATCH_KEY_EVENT = "Input.dispatchKeyEvent";
     private static final String DEVTOOLS_METHOD_INSERT_TEXT = "Input.insertText";
     private static final String KEY_EVENT_TYPE_RAW_KEY_DOWN = "rawKeyDown";
@@ -108,6 +114,11 @@ final class GrapheneDomKeyboardDispatcher {
         payload.addProperty(PROPERTY_TYPE, type);
         payload.addProperty(PROPERTY_MODIFIERS, keyData.modifiers());
         appendKeyDataProperties(payload, keyData);
+        if (KEY_EVENT_TYPE_RAW_KEY_DOWN.equals(type)
+                && shouldSuppressMacMenuEquivalentUnmodifiedText(keyData.key(), keyData.modifiers())) {
+            payload.addProperty(PROPERTY_TEXT, "");
+            payload.addProperty(PROPERTY_UNMODIFIED_TEXT, "");
+        }
         payload.addProperty(PROPERTY_AUTO_REPEAT, autoRepeat);
         payload.addProperty(PROPERTY_IS_SYSTEM_KEY, keyData.systemKey());
         executeDevToolsMethod(DEVTOOLS_METHOD_DISPATCH_KEY_EVENT, payload);
@@ -118,7 +129,7 @@ final class GrapheneDomKeyboardDispatcher {
         payload.addProperty(PROPERTY_TYPE, KEY_EVENT_TYPE_CHAR);
         payload.addProperty(PROPERTY_MODIFIERS, modifiers);
         payload.addProperty(PROPERTY_TEXT, text);
-        payload.addProperty(PROPERTY_UNMODIFIED_TEXT, text);
+        payload.addProperty(PROPERTY_UNMODIFIED_TEXT, resolveUnmodifiedText(text, modifiers));
         payload.addProperty(PROPERTY_KEY, text);
         if (keyData != null) {
             appendKeyDataProperties(payload, keyData);
@@ -141,6 +152,23 @@ final class GrapheneDomKeyboardDispatcher {
         payload.addProperty(PROPERTY_NATIVE_VIRTUAL_KEY_CODE, keyData.nativeVirtualKeyCode());
         payload.addProperty(PROPERTY_IS_KEYPAD, keyData.keypad());
         payload.addProperty(PROPERTY_LOCATION, keyData.location());
+    }
+
+    private String resolveUnmodifiedText(String text, int modifiers) {
+        if (shouldSuppressMacMenuEquivalentUnmodifiedText(text, modifiers)) {
+            return "";
+        }
+
+        return text;
+    }
+
+    private boolean shouldSuppressMacMenuEquivalentUnmodifiedText(String text, int modifiers) {
+        if (!GraphenePlatform.isMac() || (modifiers & DEVTOOLS_MENU_MODIFIERS) != 0) {
+            return false;
+        }
+
+        return "d".equalsIgnoreCase(text) || "e".equalsIgnoreCase(text)
+                || "f".equalsIgnoreCase(text);
     }
 
     private void executeDevToolsMethod(String method, JsonObject payload) {
