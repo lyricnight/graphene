@@ -44,7 +44,9 @@ final class GrapheneBrowserFrameUploader {
             return;
         }
 
-        if (frame.fullReRender() || shouldUploadFullFrame(frame.dirtyRects(), frame.width(), frame.height())) {
+        if (!texture.hasUploadedFrame()
+                || frame.fullReRender()
+                || shouldUploadFullFrame(frame.dirtyRects(), frame.width(), frame.height())) {
             uploadFullFrame(texture.texture(), frame.buffer(), frame.width(), frame.height());
         } else {
             uploadDirtyRects(texture.texture(), frame.buffer(), frame.dirtyRects(), frame.width(), frame.height());

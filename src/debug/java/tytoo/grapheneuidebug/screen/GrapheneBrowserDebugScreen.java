@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import tytoo.grapheneui.api.GrapheneCore;
 import tytoo.grapheneui.api.bridge.GrapheneBridge;
 import tytoo.grapheneui.api.bridge.GrapheneBridgeSubscription;
+import tytoo.grapheneui.api.surface.BrowserSurface;
 import tytoo.grapheneui.api.widget.GrapheneWebViewWidget;
+import tytoo.grapheneui.internal.screen.GrapheneScreenBridge;
 import tytoo.grapheneuidebug.GrapheneDebugClient;
 import tytoo.grapheneuidebug.test.GrapheneDebugTestRunner;
 
@@ -42,6 +44,7 @@ public final class GrapheneBrowserDebugScreen extends Screen {
     private static final Duration DEBUG_JAVA_TO_JS_REQUEST_TIMEOUT = Duration.ofSeconds(3);
 
     private static String lastUrl;
+    private static BrowserSurface retainedSurface;
     private final List<GrapheneBridgeSubscription> bridgeSubscriptions = new ArrayList<>();
     private GrapheneWebViewWidget webViewWidget;
     private EditBox urlBox;
@@ -64,6 +67,17 @@ public final class GrapheneBrowserDebugScreen extends Screen {
 
     private static void rememberLastUrl(String url) {
         lastUrl = url;
+    }
+
+    private static BrowserSurface retainedSurface(int width, int height) {
+        if (retainedSurface == null || retainedSurface.isClosed()) {
+            retainedSurface = BrowserSurface.builder()
+                    .url(initialUrl())
+                    .surfaceSize(width, height)
+                    .build();
+        }
+
+        return retainedSurface;
     }
 
     private static String buildEchoResponse(String payloadJson) {
@@ -185,7 +199,15 @@ public final class GrapheneBrowserDebugScreen extends Screen {
         int webViewHeight = height - webViewY - 8;
 
         if (webViewWidget == null) {
-            webViewWidget = new GrapheneWebViewWidget(this, 8, webViewY, webViewWidth, webViewHeight, Component.empty(), initialUrl);
+            webViewWidget = new GrapheneWebViewWidget(
+                    this,
+                    8,
+                    webViewY,
+                    webViewWidth,
+                    webViewHeight,
+                    Component.empty(),
+                    retainedSurface(webViewWidth, webViewHeight)
+            );
         } else {
             webViewWidget.setPosition(8, webViewY);
             webViewWidget.setSize(webViewWidth, webViewHeight);
@@ -259,6 +281,12 @@ public final class GrapheneBrowserDebugScreen extends Screen {
     public void onClose() {
         if (webViewWidget != null) {
             rememberLastUrl(webViewWidget.currentUrl());
+            webViewWidget.getSurface().clearOwner();
+            @SuppressWarnings("DataFlowIssue")
+            GrapheneScreenBridge screenBridge = (GrapheneScreenBridge) (Object) this;
+            screenBridge.graphene$removeWebViewWidget(webViewWidget);
+            screenBridge.graphene$setWebViewAutoCloseEnabled(false);
+            webViewWidget = null;
         }
 
         clearBridgeSubscriptions();
