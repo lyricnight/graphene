@@ -127,7 +127,36 @@ public final class BrowserSurfaceInputAdapter {
     }
 
     public void setFocused(boolean focused) {
+        if (!focused) {
+            surface.releaseInputCapture("focus-lost");
+        }
         focusUtil.setFocused(focused);
+    }
+
+    public boolean shouldConsumeScreenEscape() {
+        return focusUtil.isFocused() && surface.shouldConsumeScreenEscape();
+    }
+
+    public boolean shouldReleaseCaptureOnEscape() {
+        return focusUtil.isFocused() && surface.shouldReleaseCaptureOnEscape();
+    }
+
+    public boolean isCursorCaptured() {
+        return focusUtil.isFocused() && surface.isCursorCaptured();
+    }
+
+    public void releaseInputCapture(String reason) {
+        surface.releaseInputCapture(reason);
+    }
+
+    public void cursorCaptureMoved(double surfaceDeltaX, double surfaceDeltaY, int renderedWidth, int renderedHeight) {
+        if (!isCursorCaptured()) {
+            return;
+        }
+
+        int movementX = surface.toBrowserDeltaX(surfaceDeltaX, renderedWidth);
+        int movementY = surface.toBrowserDeltaY(surfaceDeltaY, renderedHeight);
+        surface.emitInputMove(movementX, movementY);
     }
 
     public boolean isPrimaryPointerButtonDown() {

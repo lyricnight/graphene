@@ -17,6 +17,7 @@ Recommended reading order:
 - [Installation](installation.md)
 - [Quickstart](quickstart.md)
 - [Bridge](bridge.md)
+- [Input Capture](input-capture.md)
 - [Assets And URLs](assets-and-urls.md)
 - [Lifecycle](lifecycle.md)
 - [Debugging](debugging.md)

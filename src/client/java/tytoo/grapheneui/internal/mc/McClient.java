@@ -1,5 +1,7 @@
 package tytoo.grapheneui.internal.mc;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.platform.Window;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
@@ -109,5 +111,13 @@ public final class McClient {
         }
 
         return NO_WINDOW_HANDLE;
+    }
+
+    public static void setCursorDisabled(boolean disabled) {
+        Window window = mc().getWindow();
+        double centerX = window.getScreenWidth() / 2.0D;
+        double centerY = window.getScreenHeight() / 2.0D;
+        int cursorMode = disabled ? InputConstants.CURSOR_DISABLED : InputConstants.CURSOR_NORMAL;
+        InputConstants.grabOrReleaseMouse(window, cursorMode, centerX, centerY);
     }
 }

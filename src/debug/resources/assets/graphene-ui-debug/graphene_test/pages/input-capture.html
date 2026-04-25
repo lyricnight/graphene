@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>Graphene Input Capture</title>
+    <link href="../styles/style.css" rel="stylesheet">
+    <style>
+        #capture-target {
+            align-items: center;
+            background: #151826;
+            border: 3px solid #4f8cff;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            height: 260px;
+            justify-content: center;
+            margin: 1rem 0;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+        }
+
+        #block {
+            background: #ff4f6d;
+            border: 2px solid white;
+            height: 40px;
+            left: calc(50% - 20px);
+            position: absolute;
+            top: calc(50% - 20px);
+            width: 40px;
+        }
+
+        #status {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<h1>Input Capture</h1>
+<p><a href="tests.html">Back to tests</a></p>
+<p>
+    Click the dark area to call <code>grapheneBridge.input.capture({ cursor: true, escape: "release" })</code>.
+    Move the mouse to move the red block. Press Escape to release capture without closing the debug screen.
+</p>
+
+<div id="capture-target">
+    <div id="block"></div>
+    <span>Click to capture cursor</span>
+</div>
+
+<p id="status">Waiting for bridge...</p>
+<pre id="log"></pre>
+
+<script>
+    const target = document.getElementById("capture-target");
+    const block = document.getElementById("block");
+    const status = document.getElementById("status");
+    const log = document.getElementById("log");
+
+    let capture = null;
+    let blockX = 0;
+    let blockY = 0;
+
+    function appendLog(message) {
+        log.textContent = `${new Date().toLocaleTimeString()} ${message}\n${log.textContent}`;
+    }
+
+    function setStatus(message) {
+        status.textContent = message;
+    }
+
+    function moveBlock(movementX, movementY) {
+        blockX += movementX;
+        blockY += movementY;
+        block.style.transform = `translate(${blockX}px, ${blockY}px)`;
+    }
+
+    function updateCapturedStyle(active) {
+        target.style.borderColor = active ? "#4fff9a" : "#4f8cff";
+    }
+
+    async function captureInput() {
+        if (!globalThis.grapheneBridge?.input) {
+            setStatus("Graphene input API is unavailable.");
+            return;
+        }
+
+        capture = await grapheneBridge.input.capture({
+            cursor: true,
+            escape: "release"
+        });
+
+        capture.onMove(({movementX, movementY}) => {
+            moveBlock(movementX, movementY);
+        });
+
+        capture.onRelease(({reason}) => {
+            updateCapturedStyle(false);
+            setStatus(`Released: ${reason}`);
+            appendLog(`release reason=${reason}`);
+        });
+
+        updateCapturedStyle(true);
+        setStatus("Captured. Move the mouse, then press Escape to release.");
+        appendLog("capture started");
+    }
+
+    target.addEventListener("click", () => {
+        captureInput().catch(error => {
+            setStatus(`Capture failed: ${error.message}`);
+            appendLog(`capture failed: ${error.stack || error.message}`);
+        });
+    });
+
+    function connectBridgeWhenAvailable() {
+        if (!globalThis.grapheneBridge?.input) {
+            setTimeout(connectBridgeWhenAvailable, 50);
+            return;
+        }
+
+        setStatus("Ready. Click the block area to capture cursor.");
+        grapheneBridge.input.onCaptureChange(state => {
+            updateCapturedStyle(state.active && state.cursor);
+            appendLog(`state active=${state.active} cursor=${state.cursor} escape=${state.escape}`);
+        });
+    }
+
+    connectBridgeWhenAvailable();
+</script>
+</body>
+</html>

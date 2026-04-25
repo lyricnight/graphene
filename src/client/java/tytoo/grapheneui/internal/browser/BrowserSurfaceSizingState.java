@@ -137,6 +137,14 @@ public final class BrowserSurfaceSizingState {
         return BrowserSurfaceViewportMapper.mapCoordinate(surfaceY, renderedHeight, viewBox.y, viewBox.height);
     }
 
+    public int toBrowserDeltaX(double surfaceDeltaX, int renderedWidth) {
+        return BrowserSurfaceViewportMapper.mapDelta(surfaceDeltaX, renderedWidth, viewBox.width);
+    }
+
+    public int toBrowserDeltaY(double surfaceDeltaY, int renderedHeight) {
+        return BrowserSurfaceViewportMapper.mapDelta(surfaceDeltaY, renderedHeight, viewBox.height);
+    }
+
     private void setResolutionInternal(int width, int height) {
         this.resolutionWidth = requirePositive(width, "resolutionWidth");
         this.resolutionHeight = requirePositive(height, "resolutionHeight");

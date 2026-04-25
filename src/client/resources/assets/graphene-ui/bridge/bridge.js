@@ -12,6 +12,11 @@ const GRAPHENE_RECEIVE_FN_NAME = "__grapheneBridgeReceiveFromJava";
 const GRAPHENE_POPUP_FALLBACK_INSTALLED_FLAG = "__graphenePopupFallbackInstalled";
 const GRAPHENE_SHARED_STATE_NAME = "__grapheneBridgeSharedState";
 const GRAPHENE_READY_RETRY_DELAY_MS = 50;
+const GRAPHENE_INPUT_CAPTURE_CHANNEL = "graphene:input:capture";
+const GRAPHENE_INPUT_RELEASE_CHANNEL = "graphene:input:release";
+const GRAPHENE_INPUT_MOVE_CHANNEL = "graphene:input:move";
+const GRAPHENE_INPUT_RELEASED_CHANNEL = "graphene:input:released";
+const GRAPHENE_INPUT_CAPTURE_CHANGED_CHANNEL = "graphene:input:capture-changed";
 
 /**
  * @typedef {Object} GrapheneCefQueryRequest
@@ -417,11 +422,202 @@ function grapheneBridgeInstallApi() {
         }
     };
 
+    grapheneBridgeApi.input = grapheneBridgeCreateInputApi(grapheneBridgeApi);
     globalThis.grapheneBridge = grapheneBridgeApi;
 }
 
 function grapheneBridgeOff(channel, listener) {
     grapheneBridgeRemoveEventListener(channel, listener);
+}
+
+function normalizeEscapeMode(value) {
+    if (value === true) {
+        return "release";
+    }
+
+    if (value === "browser-first" || value === "release") {
+        return "release";
+    }
+
+    if (value === "passthrough") {
+        return "passthrough";
+    }
+
+    return "minecraft";
+}
+
+function normalizeCaptureOptions(options) {
+    const requestedOptions = options && typeof options === "object" ? options : {};
+    return {
+        cursor: requestedOptions.cursor === true,
+        escape: normalizeEscapeMode(requestedOptions.escape)
+    };
+}
+
+function grapheneBridgeCreateInputApi(bridge) {
+    const moveListeners = new Set();
+    const releaseListeners = new Set();
+    const captureChangeListeners = new Set();
+    let captureState = {
+        active: false,
+        cursor: false,
+        escape: "minecraft"
+    };
+    let activeCaptureCleanup = grapheneBridgeNoop;
+
+    function notifyCaptureChangeListeners() {
+        const snapshot = grapheneBridgeCloneInputState();
+        captureChangeListeners.forEach(function (listener) {
+            try {
+                listener(snapshot);
+            } catch (error) {
+                grapheneBridgeReportSuppressedError("Input capture change listener failed", error);
+            }
+        });
+    }
+
+    function notifyReleaseListeners(payload) {
+        const releaseEvent = {
+            reason: typeof payload?.reason === "string" ? payload.reason : "unknown"
+        };
+        Array.from(releaseListeners).forEach(function (listener) {
+            try {
+                listener(releaseEvent);
+            } catch (error) {
+                grapheneBridgeReportSuppressedError("Input release listener failed", error);
+            }
+        });
+    }
+
+    function grapheneBridgeCloneInputState() {
+        return {
+            active: captureState.active,
+            cursor: captureState.cursor,
+            escape: captureState.escape
+        };
+    }
+
+    function updateCaptureState(payload) {
+        captureState = {
+            active: payload?.active === true,
+            cursor: payload?.cursor === true,
+            escape: typeof payload?.escape === "string" ? payload.escape : "minecraft"
+        };
+        notifyCaptureChangeListeners();
+    }
+
+    function createCaptureHandle() {
+        activeCaptureCleanup();
+
+        const handleMoveListeners = new Set();
+        const handleReleaseListeners = new Set();
+        let active = true;
+
+        function cleanupHandle() {
+            if (!active) {
+                return;
+            }
+
+            active = false;
+            handleMoveListeners.forEach(function (listener) {
+                moveListeners.delete(listener);
+            });
+            handleReleaseListeners.forEach(function (listener) {
+                releaseListeners.delete(listener);
+            });
+            releaseListeners.delete(cleanupHandle);
+            handleMoveListeners.clear();
+            handleReleaseListeners.clear();
+            if (activeCaptureCleanup === cleanupHandle) {
+                activeCaptureCleanup = grapheneBridgeNoop;
+            }
+        }
+
+        releaseListeners.add(cleanupHandle);
+        activeCaptureCleanup = cleanupHandle;
+
+        return {
+            onMove: function (listener) {
+                if (!active) {
+                    return grapheneBridgeNoop;
+                }
+
+                handleMoveListeners.add(listener);
+                moveListeners.add(listener);
+                return function () {
+                    handleMoveListeners.delete(listener);
+                    moveListeners.delete(listener);
+                };
+            },
+            onRelease: function (listener) {
+                if (!active) {
+                    return grapheneBridgeNoop;
+                }
+
+                handleReleaseListeners.add(listener);
+                releaseListeners.add(listener);
+                return function () {
+                    handleReleaseListeners.delete(listener);
+                    releaseListeners.delete(listener);
+                };
+            },
+            isActive: function () {
+                return active && captureState.active;
+            },
+            release: function () {
+                return inputApi.release();
+            }
+        };
+    }
+
+    function dispatchMove(payload) {
+        const moveEvent = {
+            movementX: Number(payload?.movementX) || 0,
+            movementY: Number(payload?.movementY) || 0
+        };
+        moveListeners.forEach(function (listener) {
+            try {
+                listener(moveEvent);
+            } catch (error) {
+                grapheneBridgeReportSuppressedError("Input move listener failed", error);
+            }
+        });
+    }
+
+    bridge.on(GRAPHENE_INPUT_MOVE_CHANNEL, dispatchMove);
+    bridge.on(GRAPHENE_INPUT_RELEASED_CHANNEL, function (payload) {
+        updateCaptureState({active: false, cursor: false, escape: "minecraft"});
+        notifyReleaseListeners(payload);
+    });
+    bridge.on(GRAPHENE_INPUT_CAPTURE_CHANGED_CHANNEL, updateCaptureState);
+
+    const inputApi = {
+        capture: function (options) {
+            return bridge.request(GRAPHENE_INPUT_CAPTURE_CHANNEL, normalizeCaptureOptions(options))
+                .then(function (state) {
+                    updateCaptureState(state);
+                    return createCaptureHandle();
+                });
+        },
+        release: function () {
+            return bridge.request(GRAPHENE_INPUT_RELEASE_CHANNEL, {reason: "api"})
+                .then(function (state) {
+                    updateCaptureState(state);
+                });
+        },
+        isCaptured: function () {
+            return captureState.active;
+        },
+        state: grapheneBridgeCloneInputState,
+        onCaptureChange: function (listener) {
+            captureChangeListeners.add(listener);
+            return function () {
+                captureChangeListeners.delete(listener);
+            };
+        }
+    };
+
+    return inputApi;
 }
 
 function grapheneBridgeFindAnchorFromClick(event) {

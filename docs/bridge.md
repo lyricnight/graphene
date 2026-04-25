@@ -62,6 +62,7 @@ The injected object:
 - `handle(channel, handler)` returns unhandle function
 - `emit(channel, payload)` returns a promise
 - `request(channel, payload)` returns a promise
+- `input` exposes Graphene input capture helpers; see [Input Capture](input-capture.md)
 
 ```js
 const bridge = globalThis.grapheneBridge;

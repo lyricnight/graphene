@@ -1,22 +1,27 @@
 package tytoo.grapheneui.api.surface;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.cursor.CursorType;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.cef.CefBrowserSettings;
+import org.cef.browser.CefBrowser;
+import org.cef.browser.CefFrame;
 import org.cef.browser.CefRequestContext;
+import org.cef.network.CefRequest;
 import tytoo.grapheneui.api.GrapheneCore;
 import tytoo.grapheneui.api.bridge.GrapheneBridge;
-import tytoo.grapheneui.internal.browser.BrowserSurfaceLoadListenerScope;
-import tytoo.grapheneui.internal.browser.BrowserSurfaceSizingState;
-import tytoo.grapheneui.internal.browser.BrowserSurfaceTitleListenerScope;
-import tytoo.grapheneui.internal.browser.GrapheneBrowser;
+import tytoo.grapheneui.api.bridge.GrapheneBridgeSubscription;
+import tytoo.grapheneui.internal.browser.*;
 import tytoo.grapheneui.internal.core.GrapheneCoreServices;
+import tytoo.grapheneui.internal.mc.McClient;
 import tytoo.grapheneui.internal.mc.McWindowScale;
 
 import java.awt.*;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -32,9 +37,17 @@ import java.util.function.Consumer;
 @SuppressWarnings("unused") // Public API
 public final class BrowserSurface implements AutoCloseable {
     private static final int MIN_SIZE = 1;
+    private static final String INPUT_CAPTURE_CHANNEL = "graphene:input:capture";
+    private static final String INPUT_RELEASE_CHANNEL = "graphene:input:release";
+    private static final String INPUT_MOVE_CHANNEL = "graphene:input:move";
+    private static final String INPUT_RELEASED_CHANNEL = "graphene:input:released";
+    private static final String INPUT_CAPTURE_CHANGED_CHANNEL = "graphene:input:capture-changed";
     private static final String OWNER_NAME = "owner";
+    private static final String CURSOR_NAME = "cursor";
+    private static final String ESCAPE_NAME = "escape";
     private static final String SURFACE_WIDTH_NAME = "surfaceWidth";
     private static final String SURFACE_HEIGHT_NAME = "surfaceHeight";
+    private static final String NAVIGATION_RELEASE_REASON = "navigation";
     private static final Consumer<CefRequestContext> NO_OP_REQUEST_CONTEXT_CUSTOMIZER = ignoredRequestContext -> {
     };
 
@@ -44,6 +57,9 @@ public final class BrowserSurface implements AutoCloseable {
     private final BrowserSurfaceLoadListenerScope loadListenerScope;
     private final BrowserSurfaceTitleListenerScope titleListenerScope;
     private final GrapheneCoreServices services;
+    private final GrapheneInputCaptureState inputCaptureState = new GrapheneInputCaptureState();
+    private final GrapheneBridgeSubscription inputCaptureSubscription;
+    private final GrapheneBridgeSubscription inputReleaseSubscription;
     private boolean closed;
 
     private BrowserSurface(Builder builder) {
@@ -73,9 +89,12 @@ public final class BrowserSurface implements AutoCloseable {
                 config.toCefBrowserSettings()
         );
         this.bridge = services.runtimeInternal().attachBridge(this.browser);
+        this.inputCaptureSubscription = this.bridge.onRequest(INPUT_CAPTURE_CHANNEL, this::onInputCaptureRequested);
+        this.inputReleaseSubscription = this.bridge.onRequest(INPUT_RELEASE_CHANNEL, this::onInputReleaseRequested);
         this.browser.createImmediately();
         this.loadListenerScope = new BrowserSurfaceLoadListenerScope(this.browser, services.runtimeInternal().getLoadEventBus());
         this.titleListenerScope = new BrowserSurfaceTitleListenerScope(this.browser, services.runtimeInternal().getTitleEventBus());
+        this.loadListenerScope.add(createInputCaptureReleaseLoadListener());
         this.browser.wasResizedTo(sizingState.resolutionWidth(), sizingState.resolutionHeight());
         if (builder.owner != null) {
             services.surfaceManager().register(builder.owner, this);
@@ -93,6 +112,9 @@ public final class BrowserSurface implements AutoCloseable {
         }
 
         closed = true;
+        releaseInputCapture("surface-closed");
+        inputCaptureSubscription.unsubscribe();
+        inputReleaseSubscription.unsubscribe();
         services.surfaceManager().unregister(this);
         loadListenerScope.close();
         titleListenerScope.close();
@@ -102,24 +124,28 @@ public final class BrowserSurface implements AutoCloseable {
 
     public void loadUrl(String url) {
         ensureOpen();
+        releaseInputCapture(NAVIGATION_RELEASE_REASON);
         services.runtimeInternal().onNavigationRequested(browser);
         browser.loadURL(url);
     }
 
     public void goBack() {
         ensureOpen();
+        releaseInputCapture(NAVIGATION_RELEASE_REASON);
         services.runtimeInternal().onNavigationRequested(browser);
         browser.goBack();
     }
 
     public void goForward() {
         ensureOpen();
+        releaseInputCapture(NAVIGATION_RELEASE_REASON);
         services.runtimeInternal().onNavigationRequested(browser);
         browser.goForward();
     }
 
     public void reload() {
         ensureOpen();
+        releaseInputCapture(NAVIGATION_RELEASE_REASON);
         services.runtimeInternal().onNavigationRequested(browser);
         browser.reload();
     }
@@ -217,6 +243,63 @@ public final class BrowserSurface implements AutoCloseable {
         return sizingState.toBrowserY(surfaceY, renderedHeight);
     }
 
+    int toBrowserDeltaX(double surfaceDeltaX, int renderedWidth) {
+        ensureOpen();
+        return sizingState.toBrowserDeltaX(surfaceDeltaX, renderedWidth);
+    }
+
+    int toBrowserDeltaY(double surfaceDeltaY, int renderedHeight) {
+        ensureOpen();
+        return sizingState.toBrowserDeltaY(surfaceDeltaY, renderedHeight);
+    }
+
+    boolean isCursorCaptured() {
+        ensureOpen();
+        return inputCaptureState.isCursorCaptured();
+    }
+
+    boolean shouldConsumeScreenEscape() {
+        ensureOpen();
+        return switch (inputCaptureState.escapeMode()) {
+            case RELEASE, PASSTHROUGH -> true;
+            case MINECRAFT -> false;
+        };
+    }
+
+    boolean shouldReleaseCaptureOnEscape() {
+        ensureOpen();
+        return inputCaptureState.escapeMode() == GrapheneInputCaptureState.EscapeMode.RELEASE;
+    }
+
+    void releaseInputCapture(String reason) {
+        if (!inputCaptureState.isActive()) {
+            return;
+        }
+
+        boolean previousCursorCaptured = inputCaptureState.isCursorCaptured();
+        inputCaptureState.release();
+        if (previousCursorCaptured) {
+            McClient.setCursorDisabled(false);
+        }
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("reason", reason == null ? "unknown" : reason);
+        emitBridgeEvent(INPUT_RELEASED_CHANNEL, payload.toString());
+        emitInputCaptureChanged();
+    }
+
+    void emitInputMove(int movementX, int movementY) {
+        ensureOpen();
+        if (!inputCaptureState.isCursorCaptured() || (movementX == 0 && movementY == 0)) {
+            return;
+        }
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("movementX", movementX);
+        payload.addProperty("movementY", movementY);
+        emitBridgeEvent(INPUT_MOVE_CHANNEL, payload.toString());
+    }
+
     public void render(GuiGraphics guiGraphics, int x, int y) {
         ensureOpen();
         render(guiGraphics, x, y, sizingState.surfaceWidth(), sizingState.surfaceHeight());
@@ -244,6 +327,108 @@ public final class BrowserSurface implements AutoCloseable {
         }
 
         browser.wasResizedTo(resizeInstruction.width(), resizeInstruction.height());
+    }
+
+    private GrapheneLoadListener createInputCaptureReleaseLoadListener() {
+        return new GrapheneLoadListener() {
+            @Override
+            public void onLoadStart(CefBrowser ignoredBrowser, CefFrame frame, CefRequest.TransitionType transitionType) {
+                if (frame == null || frame.isMain()) {
+                    releaseInputCapture(NAVIGATION_RELEASE_REASON);
+                }
+            }
+        };
+    }
+
+    private CompletableFuture<String> onInputCaptureRequested(String ignoredChannel, String payloadJson) {
+        JsonObject payload = parseObject(payloadJson);
+        boolean cursorCaptured = readCursorCaptured(payload);
+        GrapheneInputCaptureState.EscapeMode escapeMode = readEscapeMode(payload);
+        boolean previousCursorCaptured = inputCaptureState.isCursorCaptured();
+        inputCaptureState.capture(cursorCaptured, escapeMode);
+        if (previousCursorCaptured != cursorCaptured) {
+            McClient.setCursorDisabled(cursorCaptured);
+        }
+        emitInputCaptureChanged();
+        return CompletableFuture.completedFuture(inputCaptureStateJson());
+    }
+
+    private CompletableFuture<String> onInputReleaseRequested(String ignoredChannel, String payloadJson) {
+        JsonObject payload = parseObject(payloadJson);
+        releaseInputCapture(readString(payload, "reason", "api"));
+        return CompletableFuture.completedFuture(inputCaptureStateJson());
+    }
+
+    private GrapheneInputCaptureState.EscapeMode readEscapeMode(JsonObject payload) {
+        if (!payload.has(ESCAPE_NAME)) {
+            return GrapheneInputCaptureState.EscapeMode.MINECRAFT;
+        }
+
+        if (payload.get(ESCAPE_NAME).isJsonPrimitive() && payload.get(ESCAPE_NAME).getAsJsonPrimitive().isBoolean()) {
+            return payload.get(ESCAPE_NAME).getAsBoolean()
+                    ? GrapheneInputCaptureState.EscapeMode.RELEASE
+                    : GrapheneInputCaptureState.EscapeMode.MINECRAFT;
+        }
+
+        return switch (readString(payload, ESCAPE_NAME, "minecraft")) {
+            case "browser-first", "release" -> GrapheneInputCaptureState.EscapeMode.RELEASE;
+            case "passthrough" -> GrapheneInputCaptureState.EscapeMode.PASSTHROUGH;
+            default -> GrapheneInputCaptureState.EscapeMode.MINECRAFT;
+        };
+    }
+
+    private JsonObject parseObject(String payloadJson) {
+        try {
+            return JsonParser.parseString(payloadJson).getAsJsonObject();
+        } catch (RuntimeException ignored) {
+            return new JsonObject();
+        }
+    }
+
+    private boolean readCursorCaptured(JsonObject payload) {
+        if (!payload.has(CURSOR_NAME) || !payload.get(CURSOR_NAME).isJsonPrimitive()) {
+            return false;
+        }
+
+        try {
+            return payload.get(CURSOR_NAME).getAsBoolean();
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private String readString(JsonObject payload, String name, String defaultValue) {
+        return payload.has(name) && payload.get(name).isJsonPrimitive()
+                ? payload.get(name).getAsString()
+                : defaultValue;
+    }
+
+    private void emitInputCaptureChanged() {
+        emitBridgeEvent(INPUT_CAPTURE_CHANGED_CHANNEL, inputCaptureStateJson());
+    }
+
+    private String inputCaptureStateJson() {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("active", inputCaptureState.isActive());
+        payload.addProperty(CURSOR_NAME, inputCaptureState.isCursorCaptured());
+        payload.addProperty(ESCAPE_NAME, escapeModeName());
+        return payload.toString();
+    }
+
+    private String escapeModeName() {
+        return switch (inputCaptureState.escapeMode()) {
+            case RELEASE -> "release";
+            case PASSTHROUGH -> "passthrough";
+            case MINECRAFT -> "minecraft";
+        };
+    }
+
+    private void emitBridgeEvent(String channel, String payloadJson) {
+        try {
+            bridge.emit(channel, payloadJson);
+        } catch (IllegalStateException ignored) {
+            // Ignore events while the bridge is shutting down.
+        }
     }
 
     private void pushBootstrap(ProfilerFiller profiler) {

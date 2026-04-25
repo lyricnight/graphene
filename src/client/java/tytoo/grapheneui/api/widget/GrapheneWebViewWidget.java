@@ -94,7 +94,7 @@ public class GrapheneWebViewWidget extends AbstractWidget implements Closeable {
 
         surface.render(guiGraphics, getX(), getY(), getWidth(), getHeight());
 
-        if (isMouseOver(mouseX, mouseY)) {
+        if (isMouseOver(mouseX, mouseY) && !inputAdapter.isCursorCaptured()) {
             guiGraphics.requestCursor(surface.getRequestedCursor());
         }
     }
@@ -324,6 +324,31 @@ public class GrapheneWebViewWidget extends AbstractWidget implements Closeable {
         }
 
         screen.setFocused(this);
+    }
+
+    public boolean isCursorCaptured() {
+        return !isClosed() && inputAdapter.isCursorCaptured();
+    }
+
+    public void cursorCaptureMoved(double deltaX, double deltaY) {
+        if (isClosed()) {
+            return;
+        }
+
+        inputAdapter.cursorCaptureMoved(deltaX, deltaY, getWidth(), getHeight());
+    }
+
+    public boolean consumeScreenEscape(@NonNull KeyEvent keyEvent) {
+        if (isClosed() || !inputAdapter.shouldConsumeScreenEscape()) {
+            return false;
+        }
+
+        keyPressed(keyEvent);
+        if (inputAdapter.shouldReleaseCaptureOnEscape()) {
+            inputAdapter.releaseInputCapture("escape");
+        }
+
+        return true;
     }
 
     public void handleScreenResize() {
