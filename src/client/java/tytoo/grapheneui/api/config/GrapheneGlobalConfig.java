@@ -29,6 +29,23 @@ public final class GrapheneGlobalConfig {
         this.fileSystemAccessMode = Objects.requireNonNull(builder.fileSystemAccessMode, FILE_SYSTEM_ACCESS_MODE_NAME);
     }
 
+    public static GrapheneGlobalConfig defaults() {
+        return DEFAULT;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private static Path normalizePath(Path path, String argumentName) {
+        Path validatedPath = Objects.requireNonNull(path, argumentName).normalize();
+        if (validatedPath.toString().isBlank()) {
+            throw new IllegalArgumentException(argumentName + " must not be blank");
+        }
+
+        return validatedPath;
+    }
+
     @Override
     public boolean equals(Object object) {
         if (this == object) {
@@ -50,25 +67,24 @@ public final class GrapheneGlobalConfig {
         return Objects.hash(jcefDownloadPath, extensionFolders, remoteDebugConfig, fileSystemAccessMode);
     }
 
-    public static GrapheneGlobalConfig defaults() {
-        return DEFAULT;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public Path resolvedJcefDownloadPath() {
         return jcefDownloadPath == null ? DEFAULT_JCEF_DOWNLOAD_PATH : jcefDownloadPath;
     }
 
-    private static Path normalizePath(Path path, String argumentName) {
-        Path validatedPath = Objects.requireNonNull(path, argumentName).normalize();
-        if (validatedPath.toString().isBlank()) {
-            throw new IllegalArgumentException(argumentName + " must not be blank");
-        }
+    public Optional<Path> jcefDownloadPath() {
+        return Optional.ofNullable(jcefDownloadPath);
+    }
 
-        return validatedPath;
+    public List<Path> extensionFolders() {
+        return extensionFolders;
+    }
+
+    public Optional<GrapheneRemoteDebugConfig> remoteDebugging() {
+        return Optional.ofNullable(remoteDebugConfig);
+    }
+
+    public GrapheneFileSystemAccessMode fileSystemAccessMode() {
+        return fileSystemAccessMode;
     }
 
     public static final class Builder {
@@ -131,21 +147,5 @@ public final class GrapheneGlobalConfig {
         public GrapheneGlobalConfig build() {
             return new GrapheneGlobalConfig(this);
         }
-    }
-
-    public Optional<Path> jcefDownloadPath() {
-        return Optional.ofNullable(jcefDownloadPath);
-    }
-
-    public List<Path> extensionFolders() {
-        return extensionFolders;
-    }
-
-    public Optional<GrapheneRemoteDebugConfig> remoteDebugging() {
-        return Optional.ofNullable(remoteDebugConfig);
-    }
-
-    public GrapheneFileSystemAccessMode fileSystemAccessMode() {
-        return fileSystemAccessMode;
     }
 }

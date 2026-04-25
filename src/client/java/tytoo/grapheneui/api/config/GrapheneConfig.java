@@ -16,6 +16,14 @@ public final class GrapheneConfig {
         this.globalConfig = Objects.requireNonNull(builder.globalConfig, GLOBAL_CONFIG_NAME);
     }
 
+    public static GrapheneConfig defaults() {
+        return DEFAULT;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public boolean equals(Object object) {
         if (this == object) {
@@ -35,12 +43,12 @@ public final class GrapheneConfig {
         return Objects.hash(containerConfig, globalConfig);
     }
 
-    public static GrapheneConfig defaults() {
-        return DEFAULT;
+    public GrapheneContainerConfig container() {
+        return containerConfig;
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public GrapheneGlobalConfig global() {
+        return globalConfig;
     }
 
     public static final class Builder {
@@ -63,13 +71,5 @@ public final class GrapheneConfig {
         public GrapheneConfig build() {
             return new GrapheneConfig(this);
         }
-    }
-
-    public GrapheneContainerConfig container() {
-        return containerConfig;
-    }
-
-    public GrapheneGlobalConfig global() {
-        return globalConfig;
     }
 }

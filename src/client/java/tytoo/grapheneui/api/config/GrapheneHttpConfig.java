@@ -29,29 +29,6 @@ public final class GrapheneHttpConfig {
         this.spaFallback = normalizeSpaFallback(builder.spaFallback);
     }
 
-    @Override
-    public boolean equals(Object object) {
-        if (this == object) {
-            return true;
-        }
-
-        if (!(object instanceof GrapheneHttpConfig other)) {
-            return false;
-        }
-
-        return Objects.equals(baseUrlScheme, other.baseUrlScheme)
-                && Objects.equals(bindHost, other.bindHost)
-                && Objects.equals(fixedPort, other.fixedPort)
-                && Objects.equals(randomPortRange, other.randomPortRange)
-                && Objects.equals(fileRoot, other.fileRoot)
-                && Objects.equals(spaFallback, other.spaFallback);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(baseUrlScheme, bindHost, fixedPort, randomPortRange, fileRoot, spaFallback);
-    }
-
     public static Builder builder() {
         return new Builder();
     }
@@ -114,6 +91,53 @@ public final class GrapheneHttpConfig {
         }
 
         return port;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof GrapheneHttpConfig other)) {
+            return false;
+        }
+
+        return Objects.equals(baseUrlScheme, other.baseUrlScheme)
+                && Objects.equals(bindHost, other.bindHost)
+                && Objects.equals(fixedPort, other.fixedPort)
+                && Objects.equals(randomPortRange, other.randomPortRange)
+                && Objects.equals(fileRoot, other.fileRoot)
+                && Objects.equals(spaFallback, other.spaFallback);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(baseUrlScheme, bindHost, fixedPort, randomPortRange, fileRoot, spaFallback);
+    }
+
+    public String bindHost() {
+        return bindHost;
+    }
+
+    public String baseUrlScheme() {
+        return baseUrlScheme;
+    }
+
+    public Optional<Integer> fixedPort() {
+        return Optional.ofNullable(fixedPort);
+    }
+
+    public Optional<PortRange> randomPortRange() {
+        return Optional.ofNullable(randomPortRange);
+    }
+
+    public Optional<String> spaFallback() {
+        return Optional.ofNullable(spaFallback);
+    }
+
+    public Optional<Path> fileRoot() {
+        return Optional.ofNullable(fileRoot);
     }
 
     public static final class Builder {
@@ -192,29 +216,5 @@ public final class GrapheneHttpConfig {
                 throw new IllegalArgumentException("minPort must be <= maxPort");
             }
         }
-    }
-
-    public String bindHost() {
-        return bindHost;
-    }
-
-    public String baseUrlScheme() {
-        return baseUrlScheme;
-    }
-
-    public Optional<Integer> fixedPort() {
-        return Optional.ofNullable(fixedPort);
-    }
-
-    public Optional<PortRange> randomPortRange() {
-        return Optional.ofNullable(randomPortRange);
-    }
-
-    public Optional<String> spaFallback() {
-        return Optional.ofNullable(spaFallback);
-    }
-
-    public Optional<Path> fileRoot() {
-        return Optional.ofNullable(fileRoot);
     }
 }

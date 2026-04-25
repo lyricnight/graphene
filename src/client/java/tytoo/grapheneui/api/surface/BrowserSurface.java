@@ -82,6 +82,10 @@ public final class BrowserSurface implements AutoCloseable {
         }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public void close() {
         if (closed) {
@@ -94,10 +98,6 @@ public final class BrowserSurface implements AutoCloseable {
         titleListenerScope.close();
         services.runtimeInternal().detachBridge(browser);
         browser.close();
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public void loadUrl(String url) {
@@ -280,105 +280,6 @@ public final class BrowserSurface implements AutoCloseable {
         }
     }
 
-    @FunctionalInterface
-    public interface Subscription extends AutoCloseable {
-        void unsubscribe();
-
-        @Override
-        default void close() {
-            unsubscribe();
-        }
-    }
-
-    public static final class Builder {
-        private String url = "about:blank";
-        private boolean transparent = true;
-        private int surfaceWidth = MIN_SIZE;
-        private int surfaceHeight = MIN_SIZE;
-        private boolean autoResolution = true;
-        private int resolutionWidth = MIN_SIZE;
-        private int resolutionHeight = MIN_SIZE;
-        private Rectangle viewBox;
-        private Consumer<CefRequestContext> requestContextCustomizer = NO_OP_REQUEST_CONTEXT_CUSTOMIZER;
-        private BrowserSurfaceConfig config = BrowserSurfaceConfig.defaults();
-        private Object owner;
-
-        private Builder() {
-        }
-
-        public Builder url(String url) {
-            this.url = Objects.requireNonNull(url, "url");
-            return this;
-        }
-
-        public Builder transparent(boolean transparent) {
-            this.transparent = transparent;
-            return this;
-        }
-
-        public Builder surfaceSize(int width, int height) {
-            this.surfaceWidth = requirePositive(width, SURFACE_WIDTH_NAME);
-            this.surfaceHeight = requirePositive(height, SURFACE_HEIGHT_NAME);
-            return this;
-        }
-
-        public Builder resolution(int width, int height) {
-            this.autoResolution = false;
-            this.resolutionWidth = requirePositive(width, "resolutionWidth");
-            this.resolutionHeight = requirePositive(height, "resolutionHeight");
-            return this;
-        }
-
-        public Builder autoResolution() {
-            this.autoResolution = true;
-            return this;
-        }
-
-        public Builder viewBox(int x, int y, int width, int height) {
-            this.viewBox = new Rectangle(x, y, width, height);
-            return this;
-        }
-
-        public Builder requestContextCustomizer(Consumer<CefRequestContext> requestContextCustomizer) {
-            this.requestContextCustomizer = this.requestContextCustomizer.andThen(
-                    Objects.requireNonNull(requestContextCustomizer, "requestContextCustomizer")
-            );
-            return this;
-        }
-
-        public Builder owner(Object owner) {
-            this.owner = Objects.requireNonNull(owner, OWNER_NAME);
-            return this;
-        }
-
-        public Builder config(BrowserSurfaceConfig config) {
-            this.config = Objects.requireNonNull(config, "config");
-            return this;
-        }
-
-        public Builder maxFps(int maxFps) {
-            this.config = this.config.withMaxFps(maxFps);
-            return this;
-        }
-
-        public Builder settingsCustomizer(Consumer<CefBrowserSettings> settingsCustomizer) {
-            this.config = this.config.withSettingsCustomizer(settingsCustomizer);
-            return this;
-        }
-
-        public BrowserSurface build() {
-            return new BrowserSurface(this);
-        }
-
-        private static int requirePositive(int value, String name) {
-            if (value <= 0) {
-                throw new IllegalArgumentException(name + " must be > 0");
-            }
-
-            return value;
-        }
-    }
-
     public boolean isClosed() {
         return closed;
     }
@@ -446,5 +347,104 @@ public final class BrowserSurface implements AutoCloseable {
     public boolean isAutoResolution() {
         ensureOpen();
         return sizingState.isAutoResolution();
+    }
+
+    @FunctionalInterface
+    public interface Subscription extends AutoCloseable {
+        void unsubscribe();
+
+        @Override
+        default void close() {
+            unsubscribe();
+        }
+    }
+
+    public static final class Builder {
+        private String url = "about:blank";
+        private boolean transparent = true;
+        private int surfaceWidth = MIN_SIZE;
+        private int surfaceHeight = MIN_SIZE;
+        private boolean autoResolution = true;
+        private int resolutionWidth = MIN_SIZE;
+        private int resolutionHeight = MIN_SIZE;
+        private Rectangle viewBox;
+        private Consumer<CefRequestContext> requestContextCustomizer = NO_OP_REQUEST_CONTEXT_CUSTOMIZER;
+        private BrowserSurfaceConfig config = BrowserSurfaceConfig.defaults();
+        private Object owner;
+
+        private Builder() {
+        }
+
+        private static int requirePositive(int value, String name) {
+            if (value <= 0) {
+                throw new IllegalArgumentException(name + " must be > 0");
+            }
+
+            return value;
+        }
+
+        public Builder url(String url) {
+            this.url = Objects.requireNonNull(url, "url");
+            return this;
+        }
+
+        public Builder transparent(boolean transparent) {
+            this.transparent = transparent;
+            return this;
+        }
+
+        public Builder surfaceSize(int width, int height) {
+            this.surfaceWidth = requirePositive(width, SURFACE_WIDTH_NAME);
+            this.surfaceHeight = requirePositive(height, SURFACE_HEIGHT_NAME);
+            return this;
+        }
+
+        public Builder resolution(int width, int height) {
+            this.autoResolution = false;
+            this.resolutionWidth = requirePositive(width, "resolutionWidth");
+            this.resolutionHeight = requirePositive(height, "resolutionHeight");
+            return this;
+        }
+
+        public Builder autoResolution() {
+            this.autoResolution = true;
+            return this;
+        }
+
+        public Builder viewBox(int x, int y, int width, int height) {
+            this.viewBox = new Rectangle(x, y, width, height);
+            return this;
+        }
+
+        public Builder requestContextCustomizer(Consumer<CefRequestContext> requestContextCustomizer) {
+            this.requestContextCustomizer = this.requestContextCustomizer.andThen(
+                    Objects.requireNonNull(requestContextCustomizer, "requestContextCustomizer")
+            );
+            return this;
+        }
+
+        public Builder owner(Object owner) {
+            this.owner = Objects.requireNonNull(owner, OWNER_NAME);
+            return this;
+        }
+
+        public Builder config(BrowserSurfaceConfig config) {
+            this.config = Objects.requireNonNull(config, "config");
+            return this;
+        }
+
+        public Builder maxFps(int maxFps) {
+            this.config = this.config.withMaxFps(maxFps);
+            return this;
+        }
+
+        public Builder settingsCustomizer(Consumer<CefBrowserSettings> settingsCustomizer) {
+            this.config = this.config.withSettingsCustomizer(settingsCustomizer);
+            return this;
+        }
+
+        public BrowserSurface build() {
+            return new BrowserSurface(this);
+        }
     }
 }

@@ -18,15 +18,11 @@ final class GrapheneKeyboardSharedUtil {
             return fallbackCharacter;
         }
 
-        String keyName = null;
-        if (scanCode > 0) {
-            keyName = GLFW.glfwGetKeyName(GLFW.GLFW_KEY_UNKNOWN, scanCode);
+        if (!shouldResolveLayoutKeyName(keyCode, fallbackCharacter)) {
+            return fallbackCharacter;
         }
 
-        if (keyName == null || keyName.isBlank()) {
-            keyName = GLFW.glfwGetKeyName(keyCode, scanCode);
-        }
-
+        String keyName = GLFW.glfwGetKeyName(keyCode, scanCode);
         if (keyName == null || keyName.isBlank()) {
             return fallbackCharacter;
         }
@@ -37,6 +33,13 @@ final class GrapheneKeyboardSharedUtil {
         }
 
         char layoutCharacter = (char) codePoint;
+        if (shift) {
+            char shiftedLayoutCharacter = resolveShiftedLayoutCharacter(keyCode, layoutCharacter);
+            if (shiftedLayoutCharacter != KeyEvent.CHAR_UNDEFINED) {
+                return shiftedLayoutCharacter;
+            }
+        }
+
         if (shift && fallbackCharacter != KeyEvent.CHAR_UNDEFINED) {
             char unshiftedFallbackCharacter = GrapheneKeyboardMappings.charFromKeyCode(keyCode, false);
             if (layoutCharacter == unshiftedFallbackCharacter) {
@@ -141,6 +144,34 @@ final class GrapheneKeyboardSharedUtil {
 
     private static boolean isAsciiLetter(char character) {
         return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
+    }
+
+    static char resolveShiftedLayoutCharacter(int keyCode, char layoutCharacter) {
+        return resolveAzertyShiftedDigit(keyCode, layoutCharacter);
+    }
+
+    private static char resolveAzertyShiftedDigit(int keyCode, char layoutCharacter) {
+        return switch (keyCode) {
+            case GLFW.GLFW_KEY_0 -> layoutCharacter == 0x00E0 ? '0' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_1 -> layoutCharacter == '&' ? '1' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_2 -> layoutCharacter == 0x00E9 ? '2' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_3 -> layoutCharacter == '"' ? '3' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_4 -> layoutCharacter == '\'' ? '4' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_5 -> layoutCharacter == '(' ? '5' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_6 -> layoutCharacter == '-' ? '6' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_7 -> layoutCharacter == 0x00E8 ? '7' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_8 -> layoutCharacter == '_' ? '8' : KeyEvent.CHAR_UNDEFINED;
+            case GLFW.GLFW_KEY_9 -> layoutCharacter == 0x00E7 ? '9' : KeyEvent.CHAR_UNDEFINED;
+            default -> KeyEvent.CHAR_UNDEFINED;
+        };
+    }
+
+    private static boolean shouldResolveLayoutKeyName(int keyCode, char fallbackCharacter) {
+        if (keyCode == GLFW.GLFW_KEY_WORLD_1 || keyCode == GLFW.GLFW_KEY_WORLD_2) {
+            return true;
+        }
+
+        return fallbackCharacter != KeyEvent.CHAR_UNDEFINED && !Character.isISOControl(fallbackCharacter);
     }
 
     private static boolean isUnsupportedTypedCharacter(char character) {

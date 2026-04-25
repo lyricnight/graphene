@@ -2,7 +2,6 @@ package tytoo.grapheneui.internal.input.keyboard;
 
 import org.lwjgl.glfw.GLFW;
 
-import java.util.HashMap;
 import java.util.Map;
 
 final class GrapheneMacKeyEventPlatformResolver implements GrapheneKeyEventPlatformResolver {
@@ -17,29 +16,19 @@ final class GrapheneMacKeyEventPlatformResolver implements GrapheneKeyEventPlatf
     private static final char MAC_PAGE_UP = '\uF72C';
     private static final char MAC_PAGE_DOWN = '\uF72D';
 
-    private static final int[][] RAW_KEY_CHARACTER_OVERRIDES = {
-            {GLFW.GLFW_KEY_BACKSPACE, 0x7F},
-            {GLFW.GLFW_KEY_LEFT, MAC_LEFT_ARROW},
-            {GLFW.GLFW_KEY_RIGHT, MAC_RIGHT_ARROW},
-            {GLFW.GLFW_KEY_UP, MAC_UP_ARROW},
-            {GLFW.GLFW_KEY_DOWN, MAC_DOWN_ARROW},
-            {GLFW.GLFW_KEY_INSERT, MAC_INSERT},
-            {GLFW.GLFW_KEY_DELETE, MAC_FORWARD_DELETE},
-            {GLFW.GLFW_KEY_HOME, MAC_HOME},
-            {GLFW.GLFW_KEY_END, MAC_END},
-            {GLFW.GLFW_KEY_PAGE_UP, MAC_PAGE_UP},
-            {GLFW.GLFW_KEY_PAGE_DOWN, MAC_PAGE_DOWN}
-    };
-    private static final Map<Integer, Integer> RAW_KEY_CHARACTER_OVERRIDES_BY_KEY = createByFirstColumn(RAW_KEY_CHARACTER_OVERRIDES);
-
-    private static Map<Integer, Integer> createByFirstColumn(int[][] rows) {
-        Map<Integer, Integer> mappings = new HashMap<>();
-        for (int[] row : rows) {
-            mappings.put(row[0], row[1]);
-        }
-
-        return Map.copyOf(mappings);
-    }
+    private static final Map<Integer, Integer> RAW_KEY_CHARACTER_OVERRIDES_BY_KEY = Map.ofEntries(
+            Map.entry(GLFW.GLFW_KEY_BACKSPACE, 0x7F),
+            Map.entry(GLFW.GLFW_KEY_LEFT, (int) MAC_LEFT_ARROW),
+            Map.entry(GLFW.GLFW_KEY_RIGHT, (int) MAC_RIGHT_ARROW),
+            Map.entry(GLFW.GLFW_KEY_UP, (int) MAC_UP_ARROW),
+            Map.entry(GLFW.GLFW_KEY_DOWN, (int) MAC_DOWN_ARROW),
+            Map.entry(GLFW.GLFW_KEY_INSERT, (int) MAC_INSERT),
+            Map.entry(GLFW.GLFW_KEY_DELETE, (int) MAC_FORWARD_DELETE),
+            Map.entry(GLFW.GLFW_KEY_HOME, (int) MAC_HOME),
+            Map.entry(GLFW.GLFW_KEY_END, (int) MAC_END),
+            Map.entry(GLFW.GLFW_KEY_PAGE_UP, (int) MAC_PAGE_UP),
+            Map.entry(GLFW.GLFW_KEY_PAGE_DOWN, (int) MAC_PAGE_DOWN)
+    );
 
     @Override
     public boolean isSystemKey(int modifiers) {
@@ -63,5 +52,10 @@ final class GrapheneMacKeyEventPlatformResolver implements GrapheneKeyEventPlatf
         }
 
         return Math.max(scanCode, 0);
+    }
+
+    @Override
+    public int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
+        return modifiers & ~GLFW.GLFW_MOD_ALT;
     }
 }

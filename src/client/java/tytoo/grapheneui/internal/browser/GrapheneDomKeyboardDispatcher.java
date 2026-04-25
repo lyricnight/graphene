@@ -114,8 +114,7 @@ final class GrapheneDomKeyboardDispatcher {
         payload.addProperty(PROPERTY_TYPE, type);
         payload.addProperty(PROPERTY_MODIFIERS, keyData.modifiers());
         appendKeyDataProperties(payload, keyData);
-        if (KEY_EVENT_TYPE_RAW_KEY_DOWN.equals(type)
-                && shouldSuppressMacMenuEquivalentUnmodifiedText(keyData.key(), keyData.modifiers())) {
+        if (KEY_EVENT_TYPE_RAW_KEY_DOWN.equals(type)) {
             payload.addProperty(PROPERTY_TEXT, "");
             payload.addProperty(PROPERTY_UNMODIFIED_TEXT, "");
         }
@@ -155,18 +154,22 @@ final class GrapheneDomKeyboardDispatcher {
     }
 
     private String resolveUnmodifiedText(String text, int modifiers) {
-        if (shouldSuppressMacMenuEquivalentUnmodifiedText(text, modifiers)) {
+        if (shouldSuppressMacOsrSystemShortcutUnmodifiedText(text, modifiers)) {
             return "";
         }
 
         return text;
     }
 
-    private boolean shouldSuppressMacMenuEquivalentUnmodifiedText(String text, int modifiers) {
+    private boolean shouldSuppressMacOsrSystemShortcutUnmodifiedText(String text, int modifiers) {
         if (!GraphenePlatform.isMac() || (modifiers & DEVTOOLS_MENU_MODIFIERS) != 0) {
             return false;
         }
 
+        // CEF OSR maps unmodifiedText to CefKeyEvent.unmodified_character.
+        // Chromium uses it for macOS system shortcuts, so plain d/e/f can trigger
+        // Dictation, Emoji, or Fullscreen in OSR.
+        // See references/chromiumembedded-cef/include/internal/cef_types.h:2408.
         return "d".equalsIgnoreCase(text) || "e".equalsIgnoreCase(text)
                 || "f".equalsIgnoreCase(text);
     }
