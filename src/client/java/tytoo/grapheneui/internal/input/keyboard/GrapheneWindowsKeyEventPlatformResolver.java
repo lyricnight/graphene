@@ -105,15 +105,4 @@ final class GrapheneWindowsKeyEventPlatformResolver implements GrapheneKeyEventP
 
         return CefKeyEvent.buildWindowsNativeKeyCode(scanCode, isWindowsExtendedKey(keyCode), !pressed);
     }
-
-    @Override
-    public int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
-        boolean hasControlModifier = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
-        boolean hasAltModifier = (modifiers & GLFW.GLFW_MOD_ALT) != 0;
-        if (rightAltPressed && hasControlModifier && hasAltModifier) {
-            return modifiers & ~(GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT);
-        }
-
-        return modifiers;
-    }
 }

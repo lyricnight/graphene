@@ -25,11 +25,6 @@ public final class GrapheneDomKeyboardMapper {
         );
     }
 
-    public int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
-        int sanitizedModifiers = platformResolver.sanitizeTextModifiers(modifiers, rightAltPressed);
-        return GrapheneInputModifierUtil.toDevToolsModifiers(sanitizedModifiers);
-    }
-
     public String normalizeTypedText(String text) {
         return GrapheneKeyboardSharedUtil.normalizeTypedText(text);
     }

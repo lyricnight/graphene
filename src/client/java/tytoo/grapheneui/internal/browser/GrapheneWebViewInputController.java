@@ -139,7 +139,7 @@ public final class GrapheneWebViewInputController {
     }
 
     public void onCharacterTyped(CharacterEvent characterEvent) {
-        browser.textInput(new String(Character.toChars(characterEvent.codepoint())), characterEvent.modifiers());
+        browser.textInput(new String(Character.toChars(characterEvent.codepoint())));
     }
 
     public void onFocusChanged(boolean focused) {

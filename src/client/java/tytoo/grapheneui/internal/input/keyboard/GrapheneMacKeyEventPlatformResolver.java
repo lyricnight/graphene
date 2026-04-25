@@ -53,9 +53,4 @@ final class GrapheneMacKeyEventPlatformResolver implements GrapheneKeyEventPlatf
 
         return Math.max(scanCode, 0);
     }
-
-    @Override
-    public int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
-        return modifiers & ~GLFW.GLFW_MOD_ALT;
-    }
 }

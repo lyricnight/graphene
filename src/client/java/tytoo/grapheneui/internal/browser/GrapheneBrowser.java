@@ -327,8 +327,8 @@ public class GrapheneBrowser extends CefBrowserWindowless implements CefRenderHa
         keyboardDispatcher.keyReleased(keyCode, scanCode, modifiers);
     }
 
-    public void textInput(String text, int modifiers) {
-        keyboardDispatcher.textInput(text, modifiers);
+    public void textInput(String text) {
+        keyboardDispatcher.textInput(text);
     }
 
     public void resetKeyboardState() {

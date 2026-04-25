@@ -109,12 +109,12 @@ public final class BrowserSurfaceInputAdapter {
         return true;
     }
 
-    public boolean charTyped(int codePoint, int modifiers) {
+    public boolean charTyped(int codePoint) {
         if (!focusUtil.isFocused()) {
             return false;
         }
 
-        surface.internalBrowser().textInput(new String(Character.toChars(codePoint)), modifiers);
+        surface.internalBrowser().textInput(new String(Character.toChars(codePoint)));
         return true;
     }
 

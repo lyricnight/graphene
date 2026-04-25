@@ -48,7 +48,4 @@ interface GrapheneKeyEventPlatformResolver {
         return scanCode;
     }
 
-    default int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
-        return modifiers;
-    }
 }
