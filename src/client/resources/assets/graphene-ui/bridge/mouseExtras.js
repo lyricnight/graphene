@@ -1,36 +1,37 @@
-const GRAPHENE_MOUSE_EXTRAS_INSTALLED_FLAG = "__grapheneMouseExtrasInstalled";
-const GRAPHENE_MOUSE_EXTRA_BUTTON_CHANNEL = "graphene:mouse:extra-button";
-const GRAPHENE_MOUSE_EXTRA_RESET_CHANNEL = "graphene:mouse:extra-reset";
-const GRAPHENE_MOUSE_EXTRA_STATE_REQUEST_CHANNEL = "graphene:mouse:extra-state";
-const GRAPHENE_MOUSE_EXTRA_BUTTON_5 = 5;
-const GRAPHENE_MOUSE_EXTRA_BUTTON_6 = 6;
-const GRAPHENE_MOUSE_EXTRA_BUTTON_7 = 7;
+(() => {
+    const GRAPHENE_MOUSE_EXTRAS_INSTALLED_FLAG = "__grapheneMouseExtrasInstalled";
+    const GRAPHENE_MOUSE_EXTRA_BUTTON_CHANNEL = "graphene:mouse:extra-button";
+    const GRAPHENE_MOUSE_EXTRA_RESET_CHANNEL = "graphene:mouse:extra-reset";
+    const GRAPHENE_MOUSE_EXTRA_STATE_REQUEST_CHANNEL = "graphene:mouse:extra-state";
+    const GRAPHENE_MOUSE_EXTRA_BUTTON_5 = 5;
+    const GRAPHENE_MOUSE_EXTRA_BUTTON_6 = 6;
+    const GRAPHENE_MOUSE_EXTRA_BUTTON_7 = 7;
 
-const grapheneMouseExtrasListeners = new Set();
-const grapheneMouseExtrasPressedButtons = new Set();
-let grapheneMouseExtrasEventCount = 0;
-let grapheneMouseExtrasLastEvent = null;
+    const grapheneMouseExtrasListeners = new Set();
+    const grapheneMouseExtrasPressedButtons = new Set();
+    let grapheneMouseExtrasEventCount = 0;
+    let grapheneMouseExtrasLastEvent = null;
 
-function grapheneMouseExtrasReportSuppressedError(context, error) {
+    function grapheneMouseExtrasReportSuppressedError(context, error) {
     const consoleObject = globalThis.console;
     if (consoleObject && typeof consoleObject.debug === "function") {
         consoleObject.debug("[GrapheneMouseExtras] " + context, error);
     }
-}
+    }
 
-function grapheneMouseExtrasIsSupportedButton(button) {
+    function grapheneMouseExtrasIsSupportedButton(button) {
     return button >= GRAPHENE_MOUSE_EXTRA_BUTTON_5 && button <= GRAPHENE_MOUSE_EXTRA_BUTTON_7;
-}
+    }
 
-function grapheneMouseExtrasCreateEvent(button, pressed) {
+    function grapheneMouseExtrasCreateEvent(button, pressed) {
     return {
         button: button,
         pressed: pressed,
         released: !pressed
     };
-}
+    }
 
-function grapheneMouseExtrasSnapshot() {
+    function grapheneMouseExtrasSnapshot() {
     return {
         eventCount: grapheneMouseExtrasEventCount,
         lastEvent: grapheneMouseExtrasLastEvent,
@@ -38,9 +39,9 @@ function grapheneMouseExtrasSnapshot() {
             return left - right;
         })
     };
-}
+    }
 
-function grapheneMouseExtrasDispatch(eventPayload) {
+    function grapheneMouseExtrasDispatch(eventPayload) {
     grapheneMouseExtrasListeners.forEach(function (listener) {
         try {
             listener(eventPayload);
@@ -48,9 +49,9 @@ function grapheneMouseExtrasDispatch(eventPayload) {
             grapheneMouseExtrasReportSuppressedError("Mouse extras listener failed", error);
         }
     });
-}
+    }
 
-function grapheneMouseExtrasResetState() {
+    function grapheneMouseExtrasResetState() {
     const pressedButtons = Array.from(grapheneMouseExtrasPressedButtons).sort(function (left, right) {
         return left - right;
     });
@@ -65,9 +66,9 @@ function grapheneMouseExtrasResetState() {
     if (pressedButtons.length === 0) {
         grapheneMouseExtrasLastEvent = null;
     }
-}
+    }
 
-function grapheneMouseExtrasOnBridgeEvent(payload) {
+    function grapheneMouseExtrasOnBridgeEvent(payload) {
     const button = Number(payload?.button);
     if (!grapheneMouseExtrasIsSupportedButton(button)) {
         return;
@@ -83,17 +84,17 @@ function grapheneMouseExtrasOnBridgeEvent(payload) {
     grapheneMouseExtrasEventCount += 1;
     grapheneMouseExtrasLastEvent = grapheneMouseExtrasCreateEvent(button, pressed);
     grapheneMouseExtrasDispatch(grapheneMouseExtrasLastEvent);
-}
+    }
 
-function grapheneMouseExtrasAddListener(listener) {
+    function grapheneMouseExtrasAddListener(listener) {
     grapheneMouseExtrasListeners.add(listener);
-}
+    }
 
-function grapheneMouseExtrasRemoveListener(listener) {
+    function grapheneMouseExtrasRemoveListener(listener) {
     grapheneMouseExtrasListeners.delete(listener);
-}
+    }
 
-function grapheneMouseExtrasInstallApi(bridge) {
+    function grapheneMouseExtrasInstallApi(bridge) {
     bridge.on(GRAPHENE_MOUSE_EXTRA_BUTTON_CHANNEL, grapheneMouseExtrasOnBridgeEvent);
     bridge.on(GRAPHENE_MOUSE_EXTRA_RESET_CHANNEL, function () {
         grapheneMouseExtrasResetState();
@@ -128,9 +129,9 @@ function grapheneMouseExtrasInstallApi(bridge) {
             return grapheneMouseExtrasSnapshot();
         }
     };
-}
+    }
 
-function grapheneMouseExtrasTryInstall() {
+    function grapheneMouseExtrasTryInstall() {
     if (globalThis.grapheneMouseExtras?.[GRAPHENE_MOUSE_EXTRAS_INSTALLED_FLAG]) {
         return;
     }
@@ -144,6 +145,7 @@ function grapheneMouseExtrasTryInstall() {
     }
 
     grapheneMouseExtrasInstallApi(bridge);
-}
+    }
 
-grapheneMouseExtrasTryInstall();
+    grapheneMouseExtrasTryInstall();
+})();

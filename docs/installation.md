@@ -128,7 +128,7 @@ public final class MyModClient implements ClientModInitializer {
                         .extensionFolder(Path.of("./config/my-mod/extensions"))
                         .remoteDebugging(GrapheneRemoteDebugConfig.builder()
                                 .randomPort()
-                                .allowedOrigins("https://chrome-devtools-frontend.appspot.com")
+                                .allowedOrigins("*")
                                 .build())
                         .allowFileSystemAccess()
                         .build())

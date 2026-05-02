@@ -55,4 +55,13 @@ final class GrapheneLinuxKeyEventPlatformResolver implements GrapheneKeyEventPla
     public boolean isSystemKey(int modifiers) {
         return (modifiers & GLFW.GLFW_MOD_ALT) != 0;
     }
+
+    @Override
+    public int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
+        if (!rightAltPressed) {
+            return modifiers;
+        }
+
+        return modifiers & ~GLFW.GLFW_MOD_CONTROL & ~GLFW.GLFW_MOD_ALT;
+    }
 }

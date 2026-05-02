@@ -36,6 +36,11 @@ final class GrapheneMacKeyEventPlatformResolver implements GrapheneKeyEventPlatf
     }
 
     @Override
+    public int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
+        return modifiers & ~GLFW.GLFW_MOD_ALT;
+    }
+
+    @Override
     public int getNativeVirtualKeyCode(int keyCode, int scanCode, char character, boolean pressed) {
         Integer rawCharacterOverride = RAW_KEY_CHARACTER_OVERRIDES_BY_KEY.get(keyCode);
         if (rawCharacterOverride != null) {

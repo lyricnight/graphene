@@ -12,7 +12,7 @@ It embeds Chromium via JCEF, so you can render HTML/CSS/JS in Minecraft screens 
 - `GrapheneConfig`: top-level config split into container and global sections
 - `GrapheneContainerConfig`: per-consumer config, such as HTTP mount behavior
 - `GrapheneGlobalConfig`: shared runtime contribution, such as JCEF path, remote debugging, extensions, and file access
-- `GrapheneRuntime`: runtime state (`isInitialized`, remote debugging port, HTTP server state)
+- `GrapheneRuntime`: runtime state and helpers (`isInitialized`, remote debugging port, DevTools opening, HTTP server state)
 - `GrapheneHttpServer`: runtime HTTP server view (`isRunning`, `host`, `port`, `baseUrl`)
 - `BrowserSurface`: off-screen browser surface with rendering, navigation, sizing, and input mapping
 - `GrapheneWebViewWidget`: Minecraft widget wrapper around `BrowserSurface`

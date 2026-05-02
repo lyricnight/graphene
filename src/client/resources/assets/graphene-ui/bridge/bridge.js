@@ -1,47 +1,48 @@
-const GRAPHENE_BRIDGE_NAME = "graphene-ui";
-const GRAPHENE_PROTOCOL_VERSION = 1;
-const GRAPHENE_KIND_EVENT = "event";
-const GRAPHENE_KIND_REQUEST = "request";
-const GRAPHENE_KIND_RESPONSE = "response";
-const GRAPHENE_KIND_READY = "ready";
-const GRAPHENE_ERROR_NO_HANDLER = "handler_not_found";
-const GRAPHENE_ERROR_HANDLER_FAILURE = "js_handler_error";
-const GRAPHENE_ERROR_INVALID_RESPONSE = "invalid_response";
-const GRAPHENE_INSTALLED_FLAG = "__grapheneInstalled";
-const GRAPHENE_RECEIVE_FN_NAME = "__grapheneBridgeReceiveFromJava";
-const GRAPHENE_POPUP_FALLBACK_INSTALLED_FLAG = "__graphenePopupFallbackInstalled";
-const GRAPHENE_SHARED_STATE_NAME = "__grapheneBridgeSharedState";
-const GRAPHENE_READY_RETRY_DELAY_MS = 50;
-const GRAPHENE_INPUT_CAPTURE_CHANNEL = "graphene:input:capture";
-const GRAPHENE_INPUT_RELEASE_CHANNEL = "graphene:input:release";
-const GRAPHENE_INPUT_MOVE_CHANNEL = "graphene:input:move";
-const GRAPHENE_INPUT_RELEASED_CHANNEL = "graphene:input:released";
-const GRAPHENE_INPUT_CAPTURE_CHANGED_CHANNEL = "graphene:input:capture-changed";
+(() => {
+    const GRAPHENE_BRIDGE_NAME = "graphene-ui";
+    const GRAPHENE_PROTOCOL_VERSION = 1;
+    const GRAPHENE_KIND_EVENT = "event";
+    const GRAPHENE_KIND_REQUEST = "request";
+    const GRAPHENE_KIND_RESPONSE = "response";
+    const GRAPHENE_KIND_READY = "ready";
+    const GRAPHENE_ERROR_NO_HANDLER = "handler_not_found";
+    const GRAPHENE_ERROR_HANDLER_FAILURE = "js_handler_error";
+    const GRAPHENE_ERROR_INVALID_RESPONSE = "invalid_response";
+    const GRAPHENE_INSTALLED_FLAG = "__grapheneInstalled";
+    const GRAPHENE_RECEIVE_FN_NAME = "__grapheneBridgeReceiveFromJava";
+    const GRAPHENE_POPUP_FALLBACK_INSTALLED_FLAG = "__graphenePopupFallbackInstalled";
+    const GRAPHENE_SHARED_STATE_NAME = "__grapheneBridgeSharedState";
+    const GRAPHENE_READY_RETRY_DELAY_MS = 50;
+    const GRAPHENE_INPUT_CAPTURE_CHANNEL = "graphene:input:capture";
+    const GRAPHENE_INPUT_RELEASE_CHANNEL = "graphene:input:release";
+    const GRAPHENE_INPUT_MOVE_CHANNEL = "graphene:input:move";
+    const GRAPHENE_INPUT_RELEASED_CHANNEL = "graphene:input:released";
+    const GRAPHENE_INPUT_CAPTURE_CHANGED_CHANNEL = "graphene:input:capture-changed";
 
-/**
- * @typedef {Object} GrapheneCefQueryRequest
- * @property {string} request
- * @property {(responseText: string) => void} onSuccess
- * @property {(errorCode: number, errorMessage: string) => void} onFailure
- */
+    /**
+     * @typedef {Object} GrapheneCefQueryRequest
+     * @property {string} request
+     * @property {(responseText: string) => void} onSuccess
+     * @property {(errorCode: number, errorMessage: string) => void} onFailure
+     */
 
-let grapheneBridgeNextRequestSequence = 0;
-const grapheneBridgeEventListenersByChannel = new Map();
-const grapheneBridgeRequestHandlersByChannel = new Map();
+    let grapheneBridgeNextRequestSequence = 0;
+    const grapheneBridgeEventListenersByChannel = new Map();
+    const grapheneBridgeRequestHandlersByChannel = new Map();
 
-const grapheneBridgeSharedState = grapheneBridgeGetSharedState();
+    const grapheneBridgeSharedState = grapheneBridgeGetSharedState();
 
-function grapheneBridgeNoop() {
-}
+    function grapheneBridgeNoop() {
+    }
 
-function grapheneBridgeReportSuppressedError(context, error) {
+    function grapheneBridgeReportSuppressedError(context, error) {
     const consoleObject = globalThis.console;
     if (consoleObject && typeof consoleObject.debug === "function") {
         consoleObject.debug("[GrapheneBridge] " + context, error);
     }
-}
+    }
 
-function grapheneBridgeGetSharedState() {
+    function grapheneBridgeGetSharedState() {
     let sharedState = globalThis[GRAPHENE_SHARED_STATE_NAME];
     if (grapheneBridgeIsValidSharedState(sharedState)) {
         return sharedState;
@@ -63,9 +64,9 @@ function grapheneBridgeGetSharedState() {
     };
     globalThis[GRAPHENE_SHARED_STATE_NAME] = sharedState;
     return sharedState;
-}
+    }
 
-function grapheneBridgeIsValidSharedState(sharedState) {
+    function grapheneBridgeIsValidSharedState(sharedState) {
     if (!sharedState || typeof sharedState !== "object") {
         return false;
     }
@@ -76,31 +77,31 @@ function grapheneBridgeIsValidSharedState(sharedState) {
         && grapheneBridgeHasListenerSet(sharedState.readyListeners)
         && grapheneBridgeIsPromiseLike(sharedState.readyPromise)
         && typeof sharedState.resolveReadyPromise === "function";
-}
+    }
 
-function grapheneBridgeHasBoolean(objectValue, key) {
+    function grapheneBridgeHasBoolean(objectValue, key) {
     return Object.hasOwn(objectValue, key) && typeof objectValue[key] === "boolean";
-}
+    }
 
-function grapheneBridgeHasListenerSet(value) {
+    function grapheneBridgeHasListenerSet(value) {
     return value
         && typeof value === "object"
         && typeof value.add === "function"
         && typeof value.delete === "function"
         && typeof value.forEach === "function"
         && typeof value.clear === "function";
-}
+    }
 
-function grapheneBridgeIsPromiseLike(value) {
+    function grapheneBridgeIsPromiseLike(value) {
     return value && typeof value === "object" && typeof value.then === "function";
-}
+    }
 
-function grapheneBridgeResolveCefQuery() {
+    function grapheneBridgeResolveCefQuery() {
     const cefQuery = globalThis["cefQuery"];
     return typeof cefQuery === "function" ? cefQuery : null;
-}
+    }
 
-function grapheneBridgeNotifyReadyListeners() {
+    function grapheneBridgeNotifyReadyListeners() {
     grapheneBridgeSharedState.readyListeners.forEach(function (listener) {
         try {
             listener();
@@ -109,9 +110,9 @@ function grapheneBridgeNotifyReadyListeners() {
         }
     });
     grapheneBridgeSharedState.readyListeners.clear();
-}
+    }
 
-function grapheneBridgeMarkReady() {
+    function grapheneBridgeMarkReady() {
     if (grapheneBridgeSharedState.ready) {
         return;
     }
@@ -120,9 +121,9 @@ function grapheneBridgeMarkReady() {
     grapheneBridgeSharedState.readyRetryScheduled = false;
     grapheneBridgeSharedState.resolveReadyPromise();
     grapheneBridgeNotifyReadyListeners();
-}
+    }
 
-function grapheneBridgeOnReady(listener) {
+    function grapheneBridgeOnReady(listener) {
     if (typeof listener !== "function") {
         throw new TypeError("listener must be a function");
     }
@@ -143,9 +144,9 @@ function grapheneBridgeOnReady(listener) {
     return function () {
         grapheneBridgeSharedState.readyListeners.delete(listener);
     };
-}
+    }
 
-function grapheneBridgeScheduleReadyRetry() {
+    function grapheneBridgeScheduleReadyRetry() {
     if (grapheneBridgeSharedState.ready || grapheneBridgeSharedState.readyRetryScheduled) {
         return;
     }
@@ -159,25 +160,25 @@ function grapheneBridgeScheduleReadyRetry() {
         grapheneBridgeSharedState.readyRetryScheduled = false;
         grapheneBridgeSendReady();
     }, GRAPHENE_READY_RETRY_DELAY_MS);
-}
+    }
 
-function grapheneBridgeIsMessage(message) {
+    function grapheneBridgeIsMessage(message) {
     return Boolean(message) && message.bridge === GRAPHENE_BRIDGE_NAME;
-}
+    }
 
-function grapheneBridgeNormalizePayload(payload) {
+    function grapheneBridgeNormalizePayload(payload) {
     return payload === undefined ? null : payload;
-}
+    }
 
-function grapheneBridgeCreateBaseMessage(kind) {
+    function grapheneBridgeCreateBaseMessage(kind) {
     return {
         bridge: GRAPHENE_BRIDGE_NAME,
         version: GRAPHENE_PROTOCOL_VERSION,
         kind: kind
     };
-}
+    }
 
-function grapheneBridgeCreateResponseBase(message) {
+    function grapheneBridgeCreateResponseBase(message) {
     return {
         bridge: GRAPHENE_BRIDGE_NAME,
         version: GRAPHENE_PROTOCOL_VERSION,
@@ -185,9 +186,9 @@ function grapheneBridgeCreateResponseBase(message) {
         id: message.id,
         channel: message.channel
     };
-}
+    }
 
-function grapheneBridgeCreateErrorResponse(message, code, errorMessage) {
+    function grapheneBridgeCreateErrorResponse(message, code, errorMessage) {
     return Object.assign(grapheneBridgeCreateResponseBase(message), {
         ok: false,
         payload: null,
@@ -196,30 +197,30 @@ function grapheneBridgeCreateErrorResponse(message, code, errorMessage) {
             message: errorMessage
         }
     });
-}
+    }
 
-function grapheneBridgeCreateSuccessResponse(message, payload) {
+    function grapheneBridgeCreateSuccessResponse(message, payload) {
     return Object.assign(grapheneBridgeCreateResponseBase(message), {
         ok: true,
         payload: grapheneBridgeNormalizePayload(payload)
     });
-}
+    }
 
-function grapheneBridgeNextRequestId() {
+    function grapheneBridgeNextRequestId() {
     grapheneBridgeNextRequestSequence += 1;
     return "js-" + Date.now() + "-" + grapheneBridgeNextRequestSequence;
-}
+    }
 
-function grapheneBridgeParseJsonOrNull(value) {
+    function grapheneBridgeParseJsonOrNull(value) {
     try {
         return typeof value === "string" ? JSON.parse(value) : value;
     } catch (error) {
         grapheneBridgeReportSuppressedError("Failed to parse JSON payload", error);
         return null;
     }
-}
+    }
 
-function grapheneBridgeParseResponse(responseText) {
+    function grapheneBridgeParseResponse(responseText) {
     if (!responseText) {
         return {ok: true, payload: null};
     }
@@ -236,9 +237,9 @@ function grapheneBridgeParseResponse(responseText) {
             message: "Bridge returned invalid JSON"
         }
     };
-}
+    }
 
-function grapheneBridgeToError(response) {
+    function grapheneBridgeToError(response) {
     const defaultMessage = "Bridge request failed";
     const errorMessage = response?.error?.message ?? defaultMessage;
     const error = new Error(errorMessage);
@@ -247,15 +248,15 @@ function grapheneBridgeToError(response) {
     }
 
     return error;
-}
+    }
 
-/**
- * @param {Object} message
- * @param {(responseText: string) => void} resolve
- * @param {(error: Error) => void} reject
- * @returns {GrapheneCefQueryRequest}
- */
-function grapheneBridgeCreateCefQueryRequest(message, resolve, reject) {
+    /**
+     * @param {Object} message
+     * @param {(responseText: string) => void} resolve
+     * @param {(error: Error) => void} reject
+     * @returns {GrapheneCefQueryRequest}
+     */
+    function grapheneBridgeCreateCefQueryRequest(message, resolve, reject) {
     return {
         request: JSON.stringify(message),
         onSuccess: resolve,
@@ -263,9 +264,9 @@ function grapheneBridgeCreateCefQueryRequest(message, resolve, reject) {
             reject(new Error(errorMessage));
         }
     };
-}
+    }
 
-function grapheneBridgeSendToJava(message) {
+    function grapheneBridgeSendToJava(message) {
     return new Promise(function (resolve, reject) {
         const cefQuery = grapheneBridgeResolveCefQuery();
         if (!cefQuery) {
@@ -275,9 +276,9 @@ function grapheneBridgeSendToJava(message) {
 
         cefQuery(grapheneBridgeCreateCefQueryRequest(message, resolve, reject));
     });
-}
+    }
 
-function grapheneBridgeSendReady() {
+    function grapheneBridgeSendReady() {
     if (grapheneBridgeSharedState.ready || grapheneBridgeSharedState.readyRequestInFlight) {
         return;
     }
@@ -293,9 +294,9 @@ function grapheneBridgeSendReady() {
             grapheneBridgeReportSuppressedError("Ready handshake failed", error);
             grapheneBridgeScheduleReadyRetry();
         });
-}
+    }
 
-function grapheneBridgeAddEventListener(channel, listener) {
+    function grapheneBridgeAddEventListener(channel, listener) {
     let listeners = grapheneBridgeEventListenersByChannel.get(channel);
     if (!listeners) {
         listeners = new Set();
@@ -303,9 +304,9 @@ function grapheneBridgeAddEventListener(channel, listener) {
     }
 
     listeners.add(listener);
-}
+    }
 
-function grapheneBridgeRemoveEventListener(channel, listener) {
+    function grapheneBridgeRemoveEventListener(channel, listener) {
     const listeners = grapheneBridgeEventListenersByChannel.get(channel);
     if (!listeners) {
         return;
@@ -315,9 +316,9 @@ function grapheneBridgeRemoveEventListener(channel, listener) {
     if (listeners.size === 0) {
         grapheneBridgeEventListenersByChannel.delete(channel);
     }
-}
+    }
 
-function grapheneBridgeDispatchEvent(message) {
+    function grapheneBridgeDispatchEvent(message) {
     const listeners = grapheneBridgeEventListenersByChannel.get(message.channel);
     if (!listeners) {
         return;
@@ -330,9 +331,9 @@ function grapheneBridgeDispatchEvent(message) {
             grapheneBridgeReportSuppressedError("Event listener failed for channel '" + message.channel + "'", error);
         }
     });
-}
+    }
 
-function grapheneBridgeHandleRequest(message) {
+    function grapheneBridgeHandleRequest(message) {
     const requestHandler = grapheneBridgeRequestHandlersByChannel.get(message.channel);
     if (!requestHandler) {
         grapheneBridgeSendToJava(grapheneBridgeCreateErrorResponse(
@@ -355,9 +356,9 @@ function grapheneBridgeHandleRequest(message) {
             return grapheneBridgeSendToJava(grapheneBridgeCreateErrorResponse(message, GRAPHENE_ERROR_HANDLER_FAILURE, messageText));
         })
         .catch(grapheneBridgeNoop);
-}
+    }
 
-function grapheneBridgeReceiveFromJava(messageJson) {
+    function grapheneBridgeReceiveFromJava(messageJson) {
     const message = grapheneBridgeParseJsonOrNull(messageJson);
     if (!grapheneBridgeIsMessage(message)) {
         return;
@@ -371,9 +372,9 @@ function grapheneBridgeReceiveFromJava(messageJson) {
     if (message.kind === GRAPHENE_KIND_REQUEST) {
         grapheneBridgeHandleRequest(message);
     }
-}
+    }
 
-function grapheneBridgeInstallApi() {
+    function grapheneBridgeInstallApi() {
     globalThis[GRAPHENE_RECEIVE_FN_NAME] = grapheneBridgeReceiveFromJava;
 
     const grapheneBridgeApi = {
@@ -424,13 +425,13 @@ function grapheneBridgeInstallApi() {
 
     grapheneBridgeApi.input = grapheneBridgeCreateInputApi(grapheneBridgeApi);
     globalThis.grapheneBridge = grapheneBridgeApi;
-}
+    }
 
-function grapheneBridgeOff(channel, listener) {
+    function grapheneBridgeOff(channel, listener) {
     grapheneBridgeRemoveEventListener(channel, listener);
-}
+    }
 
-function normalizeEscapeMode(value) {
+    function normalizeEscapeMode(value) {
     if (value === true) {
         return "release";
     }
@@ -444,17 +445,17 @@ function normalizeEscapeMode(value) {
     }
 
     return "minecraft";
-}
+    }
 
-function normalizeCaptureOptions(options) {
+    function normalizeCaptureOptions(options) {
     const requestedOptions = options && typeof options === "object" ? options : {};
     return {
         cursor: requestedOptions.cursor === true,
         escape: normalizeEscapeMode(requestedOptions.escape)
     };
-}
+    }
 
-function grapheneBridgeCreateInputApi(bridge) {
+    function grapheneBridgeCreateInputApi(bridge) {
     const moveListeners = new Set();
     const releaseListeners = new Set();
     const captureChangeListeners = new Set();
@@ -618,9 +619,9 @@ function grapheneBridgeCreateInputApi(bridge) {
     };
 
     return inputApi;
-}
+    }
 
-function grapheneBridgeFindAnchorFromClick(event) {
+    function grapheneBridgeFindAnchorFromClick(event) {
     const target = event?.target;
     if (target && typeof target.closest === "function") {
         const directMatch = target.closest("a[href]");
@@ -648,9 +649,9 @@ function grapheneBridgeFindAnchorFromClick(event) {
     }
 
     return null;
-}
+    }
 
-function grapheneBridgeInstallPopupFallback() {
+    function grapheneBridgeInstallPopupFallback() {
     if (globalThis[GRAPHENE_POPUP_FALLBACK_INSTALLED_FLAG]) {
         return;
     }
@@ -696,11 +697,12 @@ function grapheneBridgeInstallPopupFallback() {
 
         return null;
     };
-}
+    }
 
-if (!globalThis.grapheneBridge?.[GRAPHENE_INSTALLED_FLAG]) {
+    if (!globalThis.grapheneBridge?.[GRAPHENE_INSTALLED_FLAG]) {
     grapheneBridgeInstallApi();
-}
+    }
 
-grapheneBridgeInstallPopupFallback();
-grapheneBridgeSendReady();
+    grapheneBridgeInstallPopupFallback();
+    grapheneBridgeSendReady();
+})();

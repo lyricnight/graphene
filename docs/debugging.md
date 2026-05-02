@@ -11,7 +11,7 @@ GrapheneConfig config = GrapheneConfig.builder()
         .global(GrapheneGlobalConfig.builder()
                 .remoteDebugging(GrapheneRemoteDebugConfig.builder()
                         .randomPort()
-                        .allowedOrigins("https://chrome-devtools-frontend.appspot.com")
+                        .allowedOrigins("*")
                         .build())
                 .build())
         .build();
@@ -19,19 +19,32 @@ GrapheneConfig config = GrapheneConfig.builder()
 GrapheneCore.register(MyModClient.class, config);
 ```
 
-Runtime inspection:
+Open DevTools for a `BrowserSurface`:
+
+```java
+GrapheneCore.runtime().openDevTools(surface)
+        .exceptionally(throwable -> {
+            LOGGER.warn("Failed to open Graphene DevTools", throwable);
+            return null;
+        });
+```
+
+If you only need the URI, resolve it without opening the platform browser:
+
+```java
+GrapheneCore.runtime().resolveDevToolsUri(surface)
+        .thenAccept(uri -> LOGGER.info("Graphene DevTools: {}", uri));
+```
+
+Runtime inspection is still available:
 
 ```java
 int port = GrapheneCore.runtime().getRemoteDebuggingPort();
-if (port > 0) {
-    String endpoint = "http://127.0.0.1:" + port + "/json";
-}
+// -1 when disabled, > 0 when enabled
 ```
 
-- `-1`: remote debugging disabled
-- `> 0`: active port
-
-Open `http://127.0.0.1:<port>/json` in a browser and attach DevTools to your page target.
+The runtime DevTools helpers query CEF's local target list, pick the matching page target for the surface, and build a local inspector URL.
+You do not need to manually open `http://127.0.0.1:<port>/json` for normal use.
 
 ![DevTools targets page](images/devtools-targets.png)
 

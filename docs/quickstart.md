@@ -115,7 +115,7 @@ GrapheneConfig config = GrapheneConfig.builder()
         .global(GrapheneGlobalConfig.builder()
                 .remoteDebugging(GrapheneRemoteDebugConfig.builder()
                         .randomPort()
-                        .allowedOrigins("https://chrome-devtools-frontend.appspot.com")
+                        .allowedOrigins("*")
                         .build())
                 .build())
         .build();
@@ -123,6 +123,12 @@ GrapheneConfig config = GrapheneConfig.builder()
 GrapheneCore.register(MyModClient.class, config);
 // Alternative for unusual project layouts:
 // GrapheneCore.register("my-mod-id", config);
+```
+
+Open DevTools for a surface:
+
+```java
+GrapheneCore.runtime().openDevTools(surface);
 ```
 
 Query runtime state:

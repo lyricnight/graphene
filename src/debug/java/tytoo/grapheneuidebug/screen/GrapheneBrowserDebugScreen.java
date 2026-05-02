@@ -9,7 +9,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Util;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +17,11 @@ import tytoo.grapheneui.api.bridge.GrapheneBridge;
 import tytoo.grapheneui.api.bridge.GrapheneBridgeSubscription;
 import tytoo.grapheneui.api.surface.BrowserSurface;
 import tytoo.grapheneui.api.widget.GrapheneWebViewWidget;
+import tytoo.grapheneui.internal.mc.McClient;
 import tytoo.grapheneui.internal.screen.GrapheneScreenBridge;
 import tytoo.grapheneuidebug.GrapheneDebugClient;
 import tytoo.grapheneuidebug.test.GrapheneDebugTestRunner;
 
-import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -178,13 +177,23 @@ public final class GrapheneBrowserDebugScreen extends Screen {
 
     private void openRemoteDevTools() {
         int debugPort = GrapheneCore.runtime().getRemoteDebuggingPort();
-        if (debugPort > 0) {
-            Util.getPlatform().openUri(URI.create("http://127.0.0.1:" + debugPort + "/json"));
-            emitDevToolsStatus(true, debugPort);
+        if (webViewWidget == null) {
+            LOGGER.warn("Cannot open remote DevTools because the web view is unavailable");
+            emitDevToolsStatus(false, debugPort);
             return;
         }
 
-        emitDevToolsStatus(false, debugPort);
+        GrapheneCore.runtime().openDevTools(webViewWidget.getSurface()).whenComplete((devToolsUri, throwable) -> McClient.execute(() -> {
+            if (throwable != null) {
+                Throwable rootCause = unwrap(throwable);
+                LOGGER.warn("Failed to open remote DevTools on port {}", debugPort, rootCause);
+                emitDevToolsStatus(false, debugPort);
+                return;
+            }
+
+            LOGGER.info("Opened remote DevTools at {}", devToolsUri);
+            emitDevToolsStatus(true, debugPort);
+        }));
     }
 
     @Override

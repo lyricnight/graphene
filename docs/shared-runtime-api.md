@@ -19,7 +19,7 @@ GrapheneCore.register(
                         .extensionFolder("./extensions/my-mod")
                         .remoteDebugging(GrapheneRemoteDebugConfig.builder()
                                 .randomPort()
-                                .allowedOrigins("https://chrome-devtools-frontend.appspot.com")
+                                .allowedOrigins("*")
                                 .build())
                         .build())
                 .build()
@@ -80,6 +80,20 @@ When HTTP container config is merged across consumers:
 - `spaFallback` stays private to each consumer mount
 
 Conflicts throw `IllegalStateException` naming the conflicting consumers.
+
+## Runtime Helpers
+
+From `GrapheneCore.runtime()` or `GrapheneHandle.runtime()`:
+
+```java
+GrapheneCore.runtime().openDevTools(surface);
+GrapheneCore.runtime().resolveDevToolsUri(surface);
+int debugPort = GrapheneCore.runtime().getRemoteDebuggingPort();
+GrapheneHttpServer httpServer = GrapheneCore.runtime().httpServer();
+```
+
+`openDevTools(surface)` and `resolveDevToolsUri(surface)` require remote debugging to be enabled in the merged global config.
+They select the page target matching the provided `BrowserSurface` and use the local CEF DevTools frontend when possible.
 
 ## Handle Helpers
 

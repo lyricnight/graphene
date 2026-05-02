@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import tytoo.grapheneui.api.GrapheneCore;
 import tytoo.grapheneui.api.config.GrapheneConfig;
 import tytoo.grapheneui.api.config.GrapheneGlobalConfig;
+import tytoo.grapheneui.api.config.GrapheneRemoteDebugConfig;
 import tytoo.grapheneuidebug.key.GrapheneDebugKeyBindings;
 
 public class GrapheneDebugClient implements ClientModInitializer {
@@ -18,6 +19,10 @@ public class GrapheneDebugClient implements ClientModInitializer {
                 GrapheneConfig.builder()
                         .global(GrapheneGlobalConfig.builder()
                                 .allowFileSystemAccess()
+                                .remoteDebugging(GrapheneRemoteDebugConfig.builder()
+                                        .randomPort()
+                                        .allowedOrigins("*")
+                                        .build())
                                 .build())
                         .build()
         );

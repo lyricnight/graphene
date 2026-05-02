@@ -4,6 +4,7 @@ import io.github.trethore.jcefgithub.CefAppBuilder;
 import io.github.trethore.jcefgithub.CefInitializationException;
 import io.github.trethore.jcefgithub.UnsupportedPlatformException;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.minecraft.util.Util;
 import org.cef.CefApp;
 import org.cef.CefClient;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import tytoo.grapheneui.api.config.GrapheneGlobalConfig;
 import tytoo.grapheneui.api.config.GrapheneHttpConfig;
 import tytoo.grapheneui.api.runtime.GrapheneHttpServer;
 import tytoo.grapheneui.api.runtime.GrapheneRuntime;
+import tytoo.grapheneui.api.surface.BrowserSurface;
 import tytoo.grapheneui.internal.bridge.GrapheneBridgeOptions;
 import tytoo.grapheneui.internal.bridge.GrapheneBridgeRuntime;
 import tytoo.grapheneui.internal.browser.GrapheneBrowser;
@@ -21,6 +23,7 @@ import tytoo.grapheneui.internal.browser.GrapheneBrowserSurfaceManager;
 import tytoo.grapheneui.internal.cef.startup.GrapheneCefStartupProgressHandler;
 import tytoo.grapheneui.internal.cef.startup.GrapheneNativeDownloadOverlay;
 import tytoo.grapheneui.internal.cef.startup.GrapheneNativeDownloadState;
+import tytoo.grapheneui.internal.devtools.GrapheneDevToolsResolver;
 import tytoo.grapheneui.internal.event.GrapheneLoadEventBus;
 import tytoo.grapheneui.internal.event.GrapheneTitleEventBus;
 import tytoo.grapheneui.internal.http.GrapheneHttpServerRuntime;
@@ -29,6 +32,7 @@ import tytoo.grapheneui.internal.mc.McClient;
 import tytoo.grapheneui.internal.platform.GraphenePlatform;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -51,6 +55,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
 
     private final Object lock = new Object();
     private final GrapheneBrowserSurfaceManager surfaceManager;
+    private final GrapheneDevToolsResolver devToolsResolver = new GrapheneDevToolsResolver();
     private final GrapheneLoadEventBus loadEventBus = new GrapheneLoadEventBus();
     private final GrapheneTitleEventBus titleEventBus = new GrapheneTitleEventBus();
     private final GrapheneBridgeRuntime bridgeRuntime;
@@ -220,6 +225,20 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
         synchronized (lock) {
             return remoteDebuggingPort;
         }
+    }
+
+    @Override
+    public CompletableFuture<URI> resolveDevToolsUri(BrowserSurface surface) {
+        BrowserSurface validatedSurface = Objects.requireNonNull(surface, "surface");
+        return devToolsResolver.resolveUri(getRemoteDebuggingPort(), validatedSurface.currentUrl());
+    }
+
+    @Override
+    public CompletableFuture<URI> openDevTools(BrowserSurface surface) {
+        return resolveDevToolsUri(surface).thenApply(devToolsUri -> {
+            Util.getPlatform().openUri(devToolsUri);
+            return devToolsUri;
+        });
     }
 
     @Override

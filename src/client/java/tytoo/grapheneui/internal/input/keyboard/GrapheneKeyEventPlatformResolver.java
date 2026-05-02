@@ -44,6 +44,10 @@ interface GrapheneKeyEventPlatformResolver {
         return false;
     }
 
+    default int sanitizeTextModifiers(int modifiers, boolean rightAltPressed) {
+        return modifiers;
+    }
+
     default int resolveScanCode(int keyCode, int scanCode) {
         return scanCode;
     }
