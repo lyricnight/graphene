@@ -2,6 +2,16 @@
 
 Common integration issues and direct fixes.
 
+**Triage flow**
+
+| Symptom area | Check first                                                             |
+|--------------|-------------------------------------------------------------------------|
+| Registration | `GrapheneCore.register(...)` ran during `onInitializeClient()`          |
+| Bridge       | Page has `globalThis.grapheneBridge` and Java waited for `onReady(...)` |
+| Input        | Surface size, render size, and viewBox agree                            |
+| Assets       | File is under `assets/<mod-id>/...` and loaded through handle helpers   |
+| HTTP         | Container HTTP config is enabled and runtime server is running          |
+
 ## `No Graphene consumer registered`
 
 Symptom:
@@ -173,7 +183,3 @@ Fix:
 - Ensure widgets/surfaces are closed cleanly.
 - Reduce long-running page tasks during shutdown.
 - Capture logs and reproduce with minimal UI.
-
----
-
-Next: [Testing](testing.md)

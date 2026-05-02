@@ -4,7 +4,16 @@ Graphene does not emulate the browser Pointer Lock API for arbitrary websites. C
 synthetic Pointer Lock behavior is fragile across real web games. For pages built for Graphene, use the Graphene input
 capture API instead.
 
-## Capture the cursor and Escape key
+**Capture modes**
+
+| Option                  | Behavior                                                             |
+|-------------------------|----------------------------------------------------------------------|
+| `cursor: true`          | Hide and grab the Minecraft cursor; send relative movement           |
+| `escape: "release"`     | Forward Escape to the browser, release capture, prevent screen close |
+| `escape: "passthrough"` | Forward Escape to the browser and keep capture active                |
+| `escape: "minecraft"`   | Do not capture Escape                                                |
+
+## Capture the Cursor and Escape Key
 
 ```js
 const capture = await grapheneBridge.input.capture({
@@ -30,7 +39,7 @@ loses focus.
 When `escape` is `"release"`, Escape is first delivered to the browser and then releases the capture without closing the
 Minecraft screen. Pressing Escape again uses normal Minecraft screen behavior.
 
-## Release capture
+## Release Capture
 
 ```js
 await capture.release();
@@ -44,7 +53,7 @@ await grapheneBridge.input.release();
 
 Graphene also releases capture automatically when the surface navigates, closes, or loses focus.
 
-## Escape modes
+## Escape Modes
 
 ```js
 await grapheneBridge.input.capture({ escape: "release" });
@@ -58,7 +67,7 @@ await grapheneBridge.input.capture({ escape: "minecraft" });
 - `true`: alias for `"release"`.
 - `false`: alias for `"minecraft"`.
 
-## Capture state
+## Capture State
 
 ```js
 const unsubscribe = grapheneBridge.input.onCaptureChange(state => {

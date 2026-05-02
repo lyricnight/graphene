@@ -5,51 +5,77 @@
 [![Minecraft: 1.21.11](https://img.shields.io/badge/Minecraft-1.21.11-5E8C31?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Graphene-1BD96A?style=for-the-badge&logo=modrinth)](https://modrinth.com/mod/grapheneui)
 
-Graphene is a client-side UI library for Minecraft 1.21.11 (Fabric) that lets mod developers build interfaces with web technologies.
-It embeds Chromium through JCEF, so you can render HTML/CSS/JavaScript UIs in-game while keeping a clean Java API for mod integration.
+Graphene is a client-side UI library for Minecraft `1.21.11` on Fabric. It embeds Chromium through JCEF so mod
+developers can render HTML/CSS/JavaScript UIs in-game while keeping a clean Java integration API.
 
 ![Graphene demo](docs/images/demo.png)
 
+**At a glance**
+
+| Area          | Details                                    |
+|---------------|--------------------------------------------|
+| Minecraft     | `1.21.11`                                  |
+| Loader        | Fabric                                     |
+| Runtime       | Client-side                                |
+| UI engine     | Chromium via JCEF                          |
+| Java baseline | `21`                                       |
+| Artifact      | `io.github.trethore:graphene-ui:<version>` |
+
+**Documentation**
+
+- [Docs index](docs/README.md) - setup path and topic map
+- [Installation](docs/installation.md) - dependency and runtime setup
+- [Quickstart](docs/quickstart.md) - first web screen
+- [Bridge](docs/bridge.md) - Java <-> JavaScript messaging
+
 ## What is Graphene?
 
-Graphene is meant to bridge Minecraft modding and modern web UI development.
+Graphene bridges Minecraft modding and modern web UI development. Instead of writing every screen directly with
+Minecraft rendering primitives, you can use browser capabilities while keeping your integration focused on Fabric +
+Minecraft `1.21.11`.
 
-Instead of writing every screen directly with Minecraft rendering primitives, you can:
+**Use Graphene to**
 
-- build rich, responsive interfaces using browser capabilities;
-- connect those interfaces to your mod logic through Graphene's API;
-- iterate on UI faster with familiar web tooling and patterns;
-- keep the integration focused on Fabric + Minecraft 1.21.11.
+- build rich, responsive interfaces with familiar web technologies
+- connect web interfaces to mod logic through Graphene's Java API
+- iterate faster with standard web tooling and patterns
+- avoid reinventing a full UI stack inside the game
 
-In short: Graphene gives Fabric mods a practical way to use web-powered interfaces without reinventing a full UI stack inside the game.
+## Requirements and Platforms
 
-## Requirements
+| Requirement | Value                           |
+|-------------|---------------------------------|
+| Java        | `21`                            |
+| GPU         | NVIDIA GeForce GT 720 or better |
+| macOS       | macOS 12 Monterey or later      |
 
-- Java: `21`
-- GPU: `NVIDIA GeForce GT 720` or better
-- For macOS users: macOS 12 (Monterey) or later
+| OS      | Architectures    |
+|---------|------------------|
+| macOS   | `arm64`, `amd64` |
+| Linux   | `arm64`, `amd64` |
+| Windows | `amd64`, `arm64` |
 
-## Supported Platforms
+**Tested platforms**
 
-- macOS: `arm64`, `amd64`
-- Linux: `arm64`, `amd64`
-- Windows: `amd64`, `arm64`
-
-## Tested Platforms
-
-- Windows 11 with `AZERTY` and `QWERTY` keyboard layouts
-- Linux (Wayland) with `AZERTY` and `QWERTY` keyboard layouts
-- macOS 26 with `QWERTY` keyboard layout (thanks to @Thinkseal for testing on macOS)
+| Platform      | Keyboard layouts                |
+|---------------|---------------------------------|
+| Windows 11    | `AZERTY`, `QWERTY`              |
+| Linux Wayland | `AZERTY`, `QWERTY`              |
+| macOS 26      | `QWERTY` (thanks to @Thinkseal) |
 
 ## Installation
 
-Graphene is published on Maven Central and GitHub Packages.
+Graphene is published on Maven Central and GitHub Packages. Maven Central is recommended because it does not require
+authentication.
 
-We recommend using Maven Central for ease of use (no authentication required).
+**Release locations**
 
-Check [Maven Central](https://repo1.maven.org/maven2/io/github/trethore/graphene-ui/) for the latest version.
+| Source          | Link                                                                                             |
+|-----------------|--------------------------------------------------------------------------------------------------|
+| Maven Central   | [io/github/trethore/graphene-ui](https://repo1.maven.org/maven2/io/github/trethore/graphene-ui/) |
+| GitHub releases | [trethore/graphene releases](https://github.com/trethore/graphene/releases)                      |
 
-### Maven coordinates
+### Maven Coordinates
 
 ```xml
 <dependency>
@@ -59,9 +85,14 @@ Check [Maven Central](https://repo1.maven.org/maven2/io/github/trethore/graphene
 </dependency>
 ```
 
-### Add Graphene to a Fabric Minecraft Gradle project
+### Add Graphene to a Fabric Gradle Project
 
-Primary model (recommended): keep Graphene as a separate mod dependency.
+Primary model: keep Graphene as a separate mod dependency.
+
+| Model                | Recommendation | Notes                                                                       |
+|----------------------|----------------|-----------------------------------------------------------------------------|
+| Separate runtime mod | Recommended    | Install your mod jar and `graphene-ui-<version>.jar` in `mods/`             |
+| Jar-in-jar           | Optional       | Higher risk of conflicts if multiple mods embed different Graphene versions |
 
 ```kotlin
 repositories {
@@ -85,13 +116,12 @@ In your `fabric.mod.json`, declare:
 }
 ```
 
-At runtime, place both jars in `mods/`: your mod jar and `graphene-ui-<version>.jar`.
+Jar-in-jar embedding is also possible. See [Installation](docs/installation.md) for trade-offs and setup.
 
-Jar-in-jar embedding is also possible, but it is not the preferred default. See [docs/installation.md](docs/installation.md) for the trade-offs and setup.
+### Initialize Graphene in Your Mod
 
-### Initialize Graphene in your mod
-
-Register your mod from `onInitializeClient()` with an anchor class. Graphene resolves the owning Fabric mod id from that class, and you can later resolve the scoped `GrapheneHandle` from the same anchor class:
+Register your mod from `onInitializeClient()` with an anchor class. Graphene resolves the owning Fabric mod id from that
+class, then later resolves the scoped `GrapheneHandle` from the same anchor class.
 
 ```java
 import net.fabricmc.api.ClientModInitializer;
@@ -106,7 +136,13 @@ public final class MyModClient implements ClientModInitializer {
 ```
 
 Graphene separates per-consumer container settings from shared runtime settings.
-`jcefDownloadPath(...)` is a base directory, and Graphene installs JCEF under `<jcef-mvn-version>/<platform>`.
+
+| Config area               | Purpose                                                                           |
+|---------------------------|-----------------------------------------------------------------------------------|
+| `GrapheneContainerConfig` | Per-consumer settings, such as HTTP mount behavior                                |
+| `GrapheneGlobalConfig`    | Shared runtime contributions, such as JCEF path, extensions, and remote debugging |
+
+`jcefDownloadPath(...)` is a base directory. Graphene installs JCEF under `<jcef-mvn-version>/<platform>`.
 
 ```java
 import java.nio.file.Path;
@@ -147,7 +183,7 @@ public final class MyModClient implements ClientModInitializer {
 }
 ```
 
-Use the handle for namespaced helpers:
+Use the handle for namespaced helpers.
 
 ```java
 GrapheneHandle graphene = GrapheneCore.handle(MyModClient.class);
@@ -158,16 +194,25 @@ String mountedHttpUrl = graphene.httpUrl("web/index.html");
 
 ## Documentation
 
-Start [HERE](docs/README.md)!
+| Page                                       | Covers                            |
+|--------------------------------------------|-----------------------------------|
+| [Docs index](docs/README.md)               | Full reading order                |
+| [Overview](docs/overview.md)               | Concepts and runtime model        |
+| [Installation](docs/installation.md)       | Dependency and registration setup |
+| [Quickstart](docs/quickstart.md)           | First screen integration          |
+| [Troubleshooting](docs/troubleshooting.md) | Common failures and fixes         |
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome.
 
-- Read the contributor guide in [CONTRIBUTING.md](CONTRIBUTING.md).
-- Report bugs or request features in [Issues](https://github.com/trethore/graphene/issues).
-- Open changes through [Pull Requests](https://github.com/trethore/graphene/pulls).
-- All pull requests must be tested before being submitted.
+| Action                          | Link                                                        |
+|---------------------------------|-------------------------------------------------------------|
+| Read the contributor guide      | [CONTRIBUTING.md](CONTRIBUTING.md)                          |
+| Report bugs or request features | [Issues](https://github.com/trethore/graphene/issues)       |
+| Open changes                    | [Pull Requests](https://github.com/trethore/graphene/pulls) |
+
+All pull requests must be tested before submission.
 
 ## License
 

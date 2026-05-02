@@ -2,6 +2,16 @@
 
 `BrowserSurface` gives direct control over rendering, sizing, viewport cropping, navigation, and bridge access.
 
+**Use when**
+
+| Need                      | API                                      |
+|---------------------------|------------------------------------------|
+| Direct rendering          | `surface.render(...)`                    |
+| Custom browser resolution | `resolution(...)` or `autoResolution()`  |
+| Cropped content           | `viewBox(...)`                           |
+| Custom input pipeline     | `BrowserSurfaceInputAdapter`             |
+| Lifecycle ownership       | `owner(...)`, `setOwner(...)`, `close()` |
+
 ## Builder Options
 
 - `url(String)` initial URL, default `about:blank`
@@ -60,9 +70,10 @@ If you are not using `GrapheneWebViewWidget`, call `render(...)` every frame.
 surface.render(guiGraphics, x, y, width, height);
 ```
 
-`render(...)` also triggers bridge bootstrap fallback checks and submits the browser frame through Minecraft's GUI render pipeline.
+`render(...)` also triggers bridge bootstrap fallback checks and submits the browser frame through Minecraft's GUI
+render pipeline.
 
-## Navigation And State
+## Navigation and State
 
 `BrowserSurface` exposes browser navigation and state:
 
@@ -96,7 +107,7 @@ For manual forwarding, use:
 
 These apply current viewBox and rendered dimensions.
 
-## Ownership And Cleanup
+## Ownership and Cleanup
 
 Owner-tracked lifecycle:
 
@@ -112,7 +123,3 @@ surface.close();
 ```
 
 Always close surfaces you create.
-
----
-
-Next: [Troubleshooting](troubleshooting.md)

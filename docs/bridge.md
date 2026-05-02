@@ -2,14 +2,20 @@
 
 `GrapheneBridge` is Graphene's messaging layer between Java and page JavaScript.
 
-- Java API: `GrapheneBridge` from each `BrowserSurface` or `GrapheneWebViewWidget`
-- JS API: `globalThis.grapheneBridge` injected into the page
+**API surfaces**
 
-## Message Model
+| Side       | Entry point                                                   | Purpose                                    |
+|------------|---------------------------------------------------------------|--------------------------------------------|
+| Java       | `BrowserSurface.bridge()` or `GrapheneWebViewWidget.bridge()` | Subscribe, emit events, handle requests    |
+| JavaScript | `globalThis.grapheneBridge`                                   | Listen, emit, request, and handle messages |
 
-- `event`: fire-and-forget payload on a channel
-- `request`: request/response call with success or error
-- `ready`: JS bootstrap handshake that marks the bridge ready
+**Message types**
+
+| Type      | Behavior                                           |
+|-----------|----------------------------------------------------|
+| `event`   | Fire-and-forget payload on a channel               |
+| `request` | Request/response call with success or error        |
+| `ready`   | JS bootstrap handshake that marks the bridge ready |
 
 ## Java API
 
@@ -82,7 +88,7 @@ off();
 unhandle();
 ```
 
-## Readiness And Navigation
+## Readiness and Navigation
 
 - Java outbound messages queue until JS sends `ready`.
 - `onReady` fires after queue flush.
@@ -103,7 +109,7 @@ Common codes returned by bridge request failures:
 Java request failures complete with `GrapheneBridgeRequestException` (`getCode`, `getRequestId`, `getChannel`).
 On JS, rejected errors include `error.code` when available.
 
-## Channel And Payload Rules
+## Channel and Payload Rules
 
 - Channel must be non-null and non-blank.
 - Java event/request payloads are JSON strings.
@@ -146,7 +152,3 @@ requestSub.unsubscribe();
 ```
 
 `GrapheneBridgeSubscription` is `AutoCloseable`, so try-with-resources works.
-
----
-
-Next: [Assets And URLs](assets-and-urls.md)

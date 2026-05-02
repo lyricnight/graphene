@@ -2,6 +2,15 @@
 
 This page covers the most useful Graphene diagnostics for integration work.
 
+**Diagnostic tools**
+
+| Tool             | Use for                                           |
+|------------------|---------------------------------------------------|
+| Remote DevTools  | Inspect page DOM, console, network, and JS errors |
+| Debug screen     | Exercise bundled Graphene pages in-game           |
+| `graphene.debug` | Enable targeted Graphene DEBUG logs               |
+| Runtime helpers  | Query DevTools target URLs and runtime state      |
+
 ## Remote DevTools
 
 Remote debugging is disabled unless configured.
@@ -43,7 +52,8 @@ int port = GrapheneCore.runtime().getRemoteDebuggingPort();
 // -1 when disabled, > 0 when enabled
 ```
 
-The runtime DevTools helpers query CEF's local target list, pick the matching page target for the surface, and build a local inspector URL.
+The runtime DevTools helpers query CEF's local target list, pick the matching page target for the surface, and build a
+local inspector URL.
 You do not need to manually open `http://127.0.0.1:<port>/json` for normal use.
 
 ![DevTools targets page](images/devtools-targets.png)
@@ -113,7 +123,8 @@ Selector behavior:
 - comma-separated selectors enable multiple classes and packages at once
 - blank or missing values disable Graphene debug logs
 
-For non-repository launch setups, pass `-Dgraphene.debug=...` to the JVM and ensure your logging backend is configured to emit DEBUG-level logs.
+For non-repository launch setups, pass `-Dgraphene.debug=...` to the JVM and ensure your logging backend is configured
+to emit DEBUG-level logs.
 
 ## Quick Checks
 
@@ -122,11 +133,7 @@ For non-repository launch setups, pass `-Dgraphene.debug=...` to the JVM and ens
 - `globalThis.grapheneBridge` exists in page console.
 - `bridge.onReady(...)` fires after page bridge bootstrap finishes.
 
-## API Note
+## API note
 
 `GrapheneCore.LOGGER` is not public API.
 Use your own class-local SLF4J logger in consumer code.
-
----
-
-Next: [Advanced Surface](advanced-surface.md)

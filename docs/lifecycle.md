@@ -2,6 +2,16 @@
 
 Understanding Graphene lifecycle rules prevents stale bridge state and browser leaks.
 
+**Lifecycle layers**
+
+| Layer        | Owner                   | Cleanup trigger                |
+|--------------|-------------------------|--------------------------------|
+| Runtime      | `GrapheneCore`          | Minecraft client shutdown      |
+| Widget       | `GrapheneWebViewWidget` | `close()` or screen auto-close |
+| Surface      | `BrowserSurface`        | `close()` or owner cleanup     |
+| Bridge       | `GrapheneBridge`        | navigation, detach, or close   |
+| Subscription | Caller                  | `unsubscribe()` / `close()`    |
+
 ## Runtime Lifecycle
 
 - Register every consumer with `GrapheneCore.register(...)` from `onInitializeClient()`.
@@ -26,7 +36,7 @@ HTTP server settings are merged from container configs:
 - `bindHost`, `baseUrlScheme`, and port binding must match when multiple consumers enable HTTP
 - `fileRoot` and `spaFallback` remain isolated per consumer mount
 
-## Surface And Widget Lifecycle
+## Surface and Widget Lifecycle
 
 - `GrapheneWebViewWidget` owns a `BrowserSurface`.
 - Widget creation registers ownership for automatic cleanup.
@@ -49,7 +59,7 @@ On close with auto-close enabled:
 2. surfaces owned by the screen owner key are closed
 3. widget tracking is cleared
 
-## Opt Out Of Auto-Close
+## Opt Out of Auto-Close
 
 If you need long-lived surfaces across screen transitions:
 
@@ -78,7 +88,3 @@ Use explicit cleanup for:
 - `BrowserSurface.Subscription` (load listeners)
 
 Try-with-resources works for both.
-
----
-
-Next: [Debugging](debugging.md)

@@ -1,12 +1,27 @@
 # Shared Runtime API
 
-Graphene uses a shared-consumer registration model.
-This page summarizes the current API shape and merge behavior.
+Graphene uses a shared-consumer registration model. This page summarizes the current API shape and merge behavior.
+
+**Source areas**
+
+- `GrapheneCore` - consumer registration and runtime access
+- `GrapheneHandle` - consumer-scoped URL/config/runtime helpers
+- `GrapheneConfig` - container and global config root
+- `GrapheneRuntime` - shared runtime view
+
+**Merge behavior**
+
+| Config area           | Scope              | Conflict behavior                                 |
+|-----------------------|--------------------|---------------------------------------------------|
+| Global config         | Shared runtime     | Explicit singleton values must match              |
+| Container HTTP config | Per consumer mount | Server binding must match; routes remain isolated |
 
 ## Registration Model
 
-Each consumer registers before first Graphene usage and can later resolve its scoped `GrapheneHandle` from the anchor class.
-Prefer the anchor-class form when possible, but explicit Fabric mod id registration is also supported for unusual project layouts.
+Each consumer registers before first Graphene usage and can later resolve its scoped `GrapheneHandle` from the anchor
+class.
+Prefer the anchor-class form when possible, but explicit Fabric mod id registration is also supported for unusual
+project layouts.
 
 ```java
 GrapheneCore.register(
@@ -92,8 +107,10 @@ int debugPort = GrapheneCore.runtime().getRemoteDebuggingPort();
 GrapheneHttpServer httpServer = GrapheneCore.runtime().httpServer();
 ```
 
-`openDevTools(surface)` and `resolveDevToolsUri(surface)` require remote debugging to be enabled in the merged global config.
-They select the page target matching the provided `BrowserSurface` and use the local CEF DevTools frontend when possible.
+`openDevTools(surface)` and `resolveDevToolsUri(surface)` require remote debugging to be enabled in the merged global
+config.
+They select the page target matching the provided `BrowserSurface` and use the local CEF DevTools frontend when
+possible.
 
 ## Handle Helpers
 

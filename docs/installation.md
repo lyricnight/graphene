@@ -1,9 +1,22 @@
 # Installation
 
-Graphene is published as a Fabric mod on Maven Central.
-Recommended integration is to depend on Graphene as a separate runtime mod.
+Graphene is published as a Fabric mod on Maven Central. Recommended integration is to depend on Graphene as a separate
+runtime mod.
 
-## 1) Dependency Coordinates
+**Integration modes**
+
+| Mode                   | Use when                       | Trade-off                                                 |
+|------------------------|--------------------------------|-----------------------------------------------------------|
+| Standalone runtime mod | Most mods                      | Users install `graphene-ui-<version>.jar` beside your mod |
+| Jar-in-jar             | You need one distributable jar | Higher risk of version conflicts                          |
+
+**Main API**
+
+- `GrapheneCore.register(...)` - register a consumer during client init
+- `GrapheneCore.handle(...)` - resolve the consumer-scoped handle
+- `GrapheneConfig` - configure container and global runtime behavior
+
+## Dependency Coordinates
 
 - Group: `io.github.trethore`
 - Artifact: `graphene-ui`
@@ -17,7 +30,7 @@ Releases:
 
 - `https://github.com/trethore/graphene/releases`
 
-## 2) Gradle Setup (Recommended)
+## Gradle Setup
 
 In your mod `build.gradle.kts`:
 
@@ -46,7 +59,7 @@ Runtime packaging model:
 1. Ship your mod.
 2. Install `graphene-ui-<version>.jar` in the same `mods/` directory.
 
-## 3) Optional Jar-In-Jar Model
+## Optional Jar-In-Jar Model
 
 If you need one distributable jar, you can embed Graphene:
 
@@ -62,7 +75,7 @@ Trade-offs:
 - Version conflicts are more likely if multiple mods embed different Graphene versions.
 - Users should not install both embedded and standalone Graphene copies.
 
-## 4) Register Your Mod
+## Register Your Mod
 
 Call `GrapheneCore.register(...)` once during client init.
 Later, access your scoped handle with `GrapheneCore.handle(MyModClient.class)`.
@@ -72,7 +85,8 @@ Prefer the anchor-class form when possible:
 - `GrapheneCore.register(MyModClient.class)`
 - `GrapheneCore.handle(MyModClient.class)`
 
-If a project has an unusual source-set or entrypoint layout, you can register and resolve by explicit Fabric mod id instead:
+If a project has an unusual source-set or entrypoint layout, you can register and resolve by explicit Fabric mod id
+instead:
 
 - `GrapheneCore.register("my-mod-id")`
 - `GrapheneCore.handle("my-mod-id")`
@@ -94,7 +108,7 @@ public final class MyModClient implements ClientModInitializer {
 If you register the same consumer multiple times, the config must be identical.
 Registering the same consumer with different config throws `IllegalStateException`.
 
-## 5) Optional Runtime Config
+## Optional Runtime Config
 
 `GrapheneConfig` is split into two parts:
 
@@ -145,7 +159,7 @@ Notes:
 - If no consumer configures HTTP, `GrapheneRuntime.httpServer().isRunning()` is `false`.
 - If remote debugging is not configured, `GrapheneRuntime.getRemoteDebuggingPort()` is `-1`.
 
-## 6) Shared Config Merge Rules
+## Shared Config Merge Rules
 
 Graphene merges global contributions from all registered consumers before runtime initialization.
 
@@ -161,7 +175,7 @@ HTTP server settings are contributed per consumer through `GrapheneContainerConf
 
 Conflicts throw a startup `IllegalStateException` that names both conflicting consumers.
 
-## 7) Compatibility Baseline
+## Compatibility Baseline
 
 Current repository baseline:
 
@@ -169,7 +183,3 @@ Current repository baseline:
 - Fabric Loader `0.18.4`
 - Fabric API `0.141.3+1.21.11`
 - Java `21`
-
----
-
-Next: [Quickstart](quickstart.md)

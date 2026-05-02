@@ -2,7 +2,23 @@
 
 This guide shows the shortest path to render a web UI in a Minecraft screen.
 
-## 1) Register Once During Client Init
+**Flow**
+
+| Step | Action                                              |
+|------|-----------------------------------------------------|
+| 1    | Register your mod with `GrapheneCore.register(...)` |
+| 2    | Create a `GrapheneWebViewWidget` in a `Screen`      |
+| 3    | Put assets under `assets/<mod-id>/...`              |
+| 4    | Open the screen from a client-side callback         |
+| 5    | Optionally enable DevTools or HTTP mode             |
+
+**Main API**
+
+- `GrapheneCore.register(...)`
+- `GrapheneCore.handle(...)`
+- `GrapheneWebViewWidget`
+
+## Register Once During Client Init
 
 ```java
 package com.example.mymod;
@@ -29,7 +45,7 @@ GrapheneCore.register("my-mod-id");
 GrapheneHandle graphene = GrapheneCore.handle("my-mod-id");
 ```
 
-## 2) Create A Screen With `GrapheneWebViewWidget`
+## Create a Screen With `GrapheneWebViewWidget`
 
 ```java
 package com.example.mymod.client.screen;
@@ -67,7 +83,7 @@ Notes:
 - The widget manages rendering and input forwarding for the browser surface.
 - `ScreenMixin` auto-closes tracked web views by default when the screen closes.
 
-## 3) Put Assets Under Your Namespace
+## Put Assets Under Your Namespace
 
 Typical layout:
 
@@ -93,16 +109,17 @@ For this repository's debug module, sample page URL:
 String url = GrapheneCore.handle(GrapheneDebugClient.class).appAssets().asset("graphene_test/pages/welcome.html");
 ```
 
-## 4) Open The Screen
+## Open the Screen
 
-Open the screen from any client-side callback that already has access to the Minecraft client, such as a keybind handler, command callback, or tick hook.
+Open the screen from any client-side callback that already has access to the Minecraft client, such as a keybind
+handler, command callback, or tick hook.
 For example, inside a Fabric callback that exposes a `client` parameter:
 
 ```java
 client.setScreen(new MyWebScreen());
 ```
 
-## 5) Optional: Enable Remote Debugging
+## Optional: Enable Remote Debugging
 
 Use this instead of the default registration in step 1:
 
@@ -138,7 +155,7 @@ int debugPort = GrapheneCore.runtime().getRemoteDebuggingPort();
 // -1 when disabled, > 0 when enabled
 ```
 
-## 6) Optional: Enable HTTP Mode
+## Optional: Enable HTTP Mode
 
 Use this instead of the default registration in step 1:
 
@@ -174,8 +191,5 @@ HTTP resolution order for `handle.httpUrl("...")`:
 
 `handle.httpAssets().asset(...)` always targets shared classpath assets under `/assets/<mod-id>/...`.
 
-Use `handle.httpUrl(...)` when you want filesystem-first development through `fileRoot(...)`, and use `handle.httpAssets().asset(...)` when you only need shared classpath assets.
-
----
-
-Next: [Bridge](bridge.md)
+Use `handle.httpUrl(...)` when you want filesystem-first development through `fileRoot(...)`, and use
+`handle.httpAssets().asset(...)` when you only need shared classpath assets.

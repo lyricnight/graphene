@@ -1,6 +1,16 @@
-# Assets And URLs
+# Assets and URLs
 
-Graphene provides handle-scoped URL helpers for loading web assets from your mod namespace and, optionally, from the runtime HTTP server.
+Graphene provides handle-scoped URL helpers for loading web assets from your mod namespace and, optionally, from the
+runtime HTTP server.
+
+**URL modes**
+
+| Mode               | Helper                                         | Output shape                                  |
+|--------------------|------------------------------------------------|-----------------------------------------------|
+| App scheme         | `grapheneHandle.appAssets().asset(path)`       | `app://assets/<mod-id>/<path>`                |
+| Classpath scheme   | `grapheneHandle.classpathAssets().asset(path)` | `classpath:///assets/<mod-id>/<path>`         |
+| Shared HTTP assets | `grapheneHandle.httpAssets().asset(path)`      | `http://<host>:<port>/assets/<mod-id>/<path>` |
+| Mounted HTTP route | `grapheneHandle.httpUrl(path)`                 | `http://<host>:<port>/mods/<mod-id>/<path>`   |
 
 ## URL Helpers
 
@@ -69,7 +79,8 @@ If your page is loaded from `app://assets/my-mod-id/web/index.html`, relative re
 ## URL Normalization
 
 Graphene normalizes `app://` and `classpath:///` asset requests before resolving classpath resources.
-`GrapheneClasspathUrls.normalizeResourcePath(url)` is also available when you need to normalize a public classpath URL yourself:
+`GrapheneClasspathUrls.normalizeResourcePath(url)` is also available when you need to normalize a public classpath URL
+yourself:
 
 - verify scheme
 - strip query and fragment
@@ -112,21 +123,19 @@ String mountedHttpUrl = graphene.httpUrl("web/index.html");
 
 Important behavior:
 
-- `graphene.httpAssets().asset(...)` and `graphene.httpUrl(...)` throw `IllegalStateException` when HTTP server is not running.
+- `graphene.httpAssets().asset(...)` and `graphene.httpUrl(...)` throw `IllegalStateException` when HTTP server is not
+  running.
 - `graphene.httpAssets().asset(...)` always targets shared classpath assets under `/assets/<mod-id>/...`.
 - `graphene.httpUrl(...)` targets the consumer mount under `/mods/<mod-id>/...`.
 - Mounted HTTP request resolution order is:
-  1. filesystem (`fileRoot/request-path`)
-  2. classpath fallback under `assets/<mod-id>/<request-path>`
-  3. optional SPA fallback
+    1. filesystem (`fileRoot/request-path`)
+    2. classpath fallback under `assets/<mod-id>/<request-path>`
+    3. optional SPA fallback
 
 ## Recommendations
 
 - Keep web assets under `assets/<mod-id>/web/...`.
 - Use handle or `GrapheneClasspathUrls` helpers instead of hard-coded string concatenation.
 - Keep filenames lowercase and extension-explicit.
-- Prefer `grapheneHandle.httpUrl(...)` for consumer-mounted content and `grapheneHandle.httpAssets().asset(...)` for shared classpath assets.
-
----
-
-Next: [Lifecycle](lifecycle.md)
+- Prefer `grapheneHandle.httpUrl(...)` for consumer-mounted content and `grapheneHandle.httpAssets().asset(...)` for
+  shared classpath assets.
