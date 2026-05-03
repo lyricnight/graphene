@@ -18,7 +18,29 @@ The repository is structured as follows:
 │   │   ├── java/
 │   │   │   └── tytoo/grapheneui/
 │   │   │       ├── api/                # Public, supported API surface for consumers.
+│   │   │       │   ├── bridge/         # Java-to-browser bridge events, requests, JSON helpers, and subscriptions.
+│   │   │       │   ├── config/         # Consumer-facing runtime, container, HTTP, and remote debugging configuration.
+│   │   │       │   ├── runtime/        # Public runtime and embedded HTTP server handles.
+│   │   │       │   ├── screen/         # Helpers for opening browser-backed Minecraft screens.
+│   │   │       │   ├── surface/        # Browser surface creation, input adapters, and load/title listeners.
+│   │   │       │   ├── url/            # Helpers for building asset and classpath URLs.
+│   │   │       │   └── widget/         # Reusable web view widget API.
 │   │   │       └── internal/           # Internal implementation details.
+│   │   │           ├── bridge/         # Bridge protocol, routing, codecs, queues, and request lifecycle internals.
+│   │   │           ├── browser/        # Browser lifecycle, focus, input capture, rendering, and surface integration.
+│   │   │           ├── cef/            # CEF/JCEF runtime setup, handlers, scheme support, dialogs, and startup UI.
+│   │   │           ├── core/           # Internal service wiring and shared core state.
+│   │   │           ├── devtools/       # Remote DevTools endpoint resolution.
+│   │   │           ├── event/          # Internal load and title event buses.
+│   │   │           ├── http/           # Embedded HTTP server runtime implementation.
+│   │   │           ├── input/          # Minecraft input modifier and controller utilities.
+│   │   │           ├── logging/        # Debug logging selection and output helpers.
+│   │   │           ├── mc/             # Minecraft client and window access wrappers.
+│   │   │           ├── mixin/          # Fabric mixins for screen and mouse integration.
+│   │   │           ├── platform/       # Platform and environment detection.
+│   │   │           ├── resource/       # Resource metadata helpers such as MIME type detection.
+│   │   │           ├── screen/         # Internal screen bridge implementation.
+│   │   │           └── url/            # Internal URL builders and scheme-specific URL implementations.
 │   │   └── resources/
 │   ├── debug/                          #  Debug mod used for manual testing, such as opening a UI.
 │   └── test/                           # Unit tests using JUnit 6.
