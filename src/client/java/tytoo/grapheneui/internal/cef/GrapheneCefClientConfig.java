@@ -11,26 +11,31 @@ import tytoo.grapheneui.internal.logging.GrapheneDebugLogger;
 
 import java.util.Objects;
 
-public final class GrapheneCefClientConfig {
+final class GrapheneCefClientConfig {
     private static final GrapheneDebugLogger DEBUG_LOGGER = GrapheneDebugLogger.of(GrapheneCefClientConfig.class);
 
     private GrapheneCefClientConfig() {
     }
 
-    public static void configure(
+    static void configure(
             CefClient cefClient,
             GrapheneLoadEventBus loadEventBus,
             GrapheneTitleEventBus titleEventBus,
-            GrapheneBridgeRuntime bridgeRuntime
+            GrapheneBridgeRuntime bridgeRuntime,
+            GrapheneCefBrowserShutdownTracker shutdownTracker
     ) {
         CefClient validatedClient = Objects.requireNonNull(cefClient, "cefClient");
         GrapheneLoadEventBus validatedLoadEventBus = Objects.requireNonNull(loadEventBus, "loadEventBus");
         GrapheneTitleEventBus validatedTitleEventBus = Objects.requireNonNull(titleEventBus, "titleEventBus");
         GrapheneBridgeRuntime validatedBridgeRuntime = Objects.requireNonNull(bridgeRuntime, "bridgeRuntime");
+        GrapheneCefBrowserShutdownTracker validatedShutdownTracker = Objects.requireNonNull(
+                shutdownTracker,
+                "shutdownTracker"
+        );
         GrapheneJsDialogManager jsDialogManager = new GrapheneJsDialogManager();
         GrapheneFolderUploadDialogManager folderUploadDialogManager = new GrapheneFolderUploadDialogManager();
         GrapheneCefDownloadHandler downloadHandler = new GrapheneCefDownloadHandler();
-        GrapheneCefLifeSpanHandler lifeSpanHandler = new GrapheneCefLifeSpanHandler();
+        GrapheneCefLifeSpanHandler lifeSpanHandler = new GrapheneCefLifeSpanHandler(validatedShutdownTracker);
         GrapheneCefRequestHandler requestHandler = new GrapheneCefRequestHandler();
 
         validatedClient.addLoadHandler(new GrapheneCefLoadHandler(validatedLoadEventBus, validatedBridgeRuntime));

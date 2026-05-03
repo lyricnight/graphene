@@ -45,7 +45,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
 
     private static final long CEF_SHUTDOWN_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(5);
     private static final long CEF_SHUTDOWN_POLL_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(25);
-    private static final long SHUTDOWN_HOOK_MAIN_THREAD_TIMEOUT_MILLIS = 2_000L;
+    private static final long BROWSER_CLOSE_TIMEOUT_MILLIS = 10_000L;
     private static final String FAILED_INITIALIZATION_MESSAGE = "Failed to initialize Graphene CEF runtime";
     private static final ExecutorService STARTUP_EXECUTOR = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "graphene-cef-startup");
@@ -59,9 +59,10 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
     private final GrapheneLoadEventBus loadEventBus = new GrapheneLoadEventBus();
     private final GrapheneTitleEventBus titleEventBus = new GrapheneTitleEventBus();
     private final GrapheneBridgeRuntime bridgeRuntime;
+    private final GrapheneCefBrowserShutdownTracker browserShutdownTracker = new GrapheneCefBrowserShutdownTracker();
     private boolean initialized;
     private boolean shutdownInProgress;
-    private boolean shutdownHookRegistered;
+    private boolean shutdownLifecycleRegistered;
     private CefApp cefApp;
     private CefClient cefClient;
     private int remoteDebuggingPort = -1;
@@ -88,6 +89,11 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
     }
 
     private static void awaitCefTermination() {
+        if (McClient.mc().isSameThread()) {
+            DEBUG_LOGGER.debug("Skipping blocking CEF termination wait on the Minecraft main thread");
+            return;
+        }
+
         long deadlineNanos = System.nanoTime() + CEF_SHUTDOWN_TIMEOUT_NANOS;
 
         while (CefApp.getState() != CefApp.CefAppState.TERMINATED && System.nanoTime() < deadlineNanos) {
@@ -256,7 +262,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
     }
 
     public void shutdown() {
-        shutdownInternal(true, "client lifecycle");
+        shutdownInternal();
     }
 
     private boolean ensureCanInitialize() {
@@ -289,7 +295,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
                 CefAppBuilder cefAppBuilder = createConfiguredBuilder(globalConfig, downloadState, downloadOverlay);
                 buildCefApp(cefAppBuilder, startedHttpServer);
                 initializeClient(cefAppBuilder, startedHttpServer);
-                registerShutdownHook();
+                registerShutdownLifecycle();
                 logInitializationState();
             }
         } finally {
@@ -376,7 +382,13 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
     private void initializeClient(CefAppBuilder cefAppBuilder, GrapheneHttpServerRuntime startedHttpServer) {
         try {
             cefClient = cefApp.createClient();
-            GrapheneCefClientConfig.configure(cefClient, loadEventBus, titleEventBus, bridgeRuntime);
+            GrapheneCefClientConfig.configure(
+                    cefClient,
+                    loadEventBus,
+                    titleEventBus,
+                    bridgeRuntime,
+                    browserShutdownTracker
+            );
             int configuredRemoteDebugPort = cefAppBuilder.getCefSettings().remote_debugging_port;
             remoteDebuggingPort = configuredRemoteDebugPort > 0 ? configuredRemoteDebugPort : -1;
             httpServer = startedHttpServer;
@@ -439,63 +451,29 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
         return startedHttpServer;
     }
 
-    private void registerShutdownHook() {
-        if (shutdownHookRegistered) {
+    private void registerShutdownLifecycle() {
+        if (shutdownLifecycleRegistered) {
             return;
         }
 
         ClientLifecycleEvents.CLIENT_STOPPING.register(ignoredClient -> shutdown());
-        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownFromHook, "graphene-cef-shutdown"));
-        shutdownHookRegistered = true;
-        DEBUG_LOGGER.debug("Registered CEF shutdown hooks");
+        shutdownLifecycleRegistered = true;
+        DEBUG_LOGGER.debug("Registered CEF client lifecycle shutdown hook");
     }
 
-    private void shutdownFromHook() {
-        if (tryShutdownOnMainThreadFromHook()) {
-            return;
-        }
-
-        LOGGER.warn("Falling back to direct CEF shutdown from JVM shutdown hook");
-        shutdownInternal(false, "jvm shutdown hook fallback");
-    }
-
-    private boolean tryShutdownOnMainThreadFromHook() {
-        synchronized (lock) {
-            if (!initialized && !shutdownInProgress) {
-                return true;
-            }
-        }
-
-        try {
-            CompletableFuture<Void> mainThreadShutdown = McClient.supplyOnMainThread(() -> {
-                shutdown();
-                return null;
-            });
-            mainThreadShutdown.get(SHUTDOWN_HOOK_MAIN_THREAD_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-            return true;
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            LOGGER.warn("Interrupted while waiting for main-thread CEF shutdown", exception);
-            return false;
-        } catch (ExecutionException | TimeoutException | RuntimeException exception) {
-            LOGGER.warn("Failed to run CEF shutdown on the Minecraft main thread", exception);
-            return false;
-        }
-    }
-
-    private void shutdownInternal(boolean closeSurfaces, String trigger) {
-        ShutdownResources resources = beginShutdown(trigger);
+    private void shutdownInternal() {
+        ShutdownResources resources = beginShutdown();
         if (resources == null) {
             return;
         }
 
         try {
-            closeSurfacesIfRequested(closeSurfaces);
+            closeSurfaces();
             runShutdownStep(bridgeRuntime::shutdown, "Failed to shut down Graphene bridge runtime");
             runShutdownStep(loadEventBus::clear, "Failed to clear Graphene load event listeners");
             runShutdownStep(titleEventBus::clear, "Failed to clear Graphene title event listeners");
             disposeNativeResources(resources);
-            LOGGER.info("CEF runtime disposed ({})", trigger);
+            LOGGER.info("CEF runtime disposed (client lifecycle)");
         } finally {
             synchronized (lock) {
                 shutdownInProgress = false;
@@ -503,7 +481,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
         }
     }
 
-    private ShutdownResources beginShutdown(String trigger) {
+    private ShutdownResources beginShutdown() {
         synchronized (lock) {
             if (shutdownInProgress) {
                 DEBUG_LOGGER.debug("Skipping CEF shutdown because another shutdown is already in progress");
@@ -530,8 +508,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
             remoteDebuggingPort = -1;
             initialized = false;
 
-            DEBUG_LOGGER.debug("Starting CEF shutdown trigger={} closeClient={} closeApp={} httpRunning={}",
-                    trigger,
+            DEBUG_LOGGER.debug("Starting CEF shutdown closeClient={} closeApp={} httpRunning={}",
                     resources.cefClient() != null,
                     resources.cefApp() != null,
                     resources.httpServerRunning()
@@ -545,6 +522,7 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
         CefClient activeClient = resources.cefClient();
         if (activeClient != null) {
             runShutdownStep(activeClient::dispose, "Failed to dispose CEF client");
+            awaitBrowserCloseCallbacks();
         }
 
         CefApp activeApp = resources.cefApp();
@@ -555,17 +533,36 @@ public final class GrapheneCefRuntime implements GrapheneRuntime {
         runShutdownStep(resources.closeHttpServer(), "Failed to stop Graphene HTTP server");
     }
 
-    private void closeSurfacesIfRequested(boolean closeSurfaces) {
-        if (!closeSurfaces) {
-            return;
-        }
-
+    private void closeSurfaces() {
         runShutdownStep(surfaceManager::closeAll, "Failed to close browser surfaces during CEF shutdown");
     }
 
     private void disposeCefApp(CefApp activeApp) {
         activeApp.dispose();
         awaitCefTermination();
+    }
+
+    private void awaitBrowserCloseCallbacks() {
+        if (McClient.mc().isSameThread()) {
+            DEBUG_LOGGER.debug(
+                    "Skipping blocking CEF browser close wait on the Minecraft main thread; openBrowserCount={}",
+                    browserShutdownTracker.openBrowserCount()
+            );
+            return;
+        }
+
+        try {
+            browserShutdownTracker.allBrowsersClosedFuture().get(BROWSER_CLOSE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            LOGGER.warn("Interrupted while waiting for CEF browsers to close");
+        } catch (ExecutionException | TimeoutException exception) {
+            LOGGER.warn(
+                    "Timed out while waiting for {} CEF browser(s) to close",
+                    browserShutdownTracker.openBrowserCount(),
+                    exception
+            );
+        }
     }
 
     private void runShutdownStep(Runnable action, String failureMessage) {
