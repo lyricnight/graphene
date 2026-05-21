@@ -54,10 +54,13 @@ surface.resetViewBox();
 
 ## Rendering
 
-If you are not using `GrapheneWebViewWidget`, call `render(...)` every frame.
+If you are not using `GrapheneWebViewWidget`, call `render(...)` from Minecraft's GUI render extraction path.
 
 ```java
-surface.render(guiGraphics, x, y, width, height);
+@Override
+public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+    surface.render(guiGraphics, x, y, width, height);
+}
 ```
 
 `render(...)` also triggers bridge bootstrap fallback checks and submits the browser frame through Minecraft's GUI render pipeline.

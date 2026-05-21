@@ -165,10 +165,10 @@ Conflicts throw a startup `IllegalStateException` that names both conflicting co
 
 Current repository baseline:
 
-- Minecraft `1.21.11`
-- Fabric Loader `0.18.4`
-- Fabric API `0.141.3+1.21.11`
-- Java `21`
+- Minecraft `26.1.2`
+- Fabric Loader `0.19.2`
+- Fabric API `0.149.1+26.1.2`
+- Java `25`
 
 ---
 

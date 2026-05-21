@@ -1,6 +1,6 @@
 package tytoo.grapheneui.api.widget;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
@@ -142,7 +142,7 @@ public class GrapheneWebViewWidget extends AbstractWidget implements Closeable {
     }
 
     @Override
-    protected void renderWidget(@NonNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(@NonNull GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!inputAdapter.isPrimaryPointerButtonDown() && isMouseOver(mouseX, mouseY)) {
             inputAdapter.mouseMoved(localX(mouseX), localY(mouseY), getWidth(), getHeight());
         }
@@ -164,7 +164,7 @@ public class GrapheneWebViewWidget extends AbstractWidget implements Closeable {
      * <p>The default implementation is a no-op. Override this method to provide a custom loading
      * indicator.</p>
      */
-    protected void drawLoadingOverlay(@SuppressWarnings("unused") @NonNull GuiGraphics guiGraphics) {
+    protected void drawLoadingOverlay(@SuppressWarnings("unused") @NonNull GuiGraphicsExtractor guiGraphics) {
         // Intentionally empty: subclasses can override this hook to draw custom loading UI.
     }
 

@@ -121,7 +121,7 @@ public final class GrapheneWebViewInputController {
     }
 
     public void onCharacterTyped(CharacterEvent characterEvent) {
-        browser.keyTyped((char) characterEvent.codepoint(), characterEvent.modifiers());
+        browser.keyTyped((char) characterEvent.codepoint(), GrapheneInputModifierUtil.currentModifiers());
     }
 
     public void onFocusChanged(boolean focused) {

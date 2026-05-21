@@ -10,7 +10,7 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 import tytoo.graphene.UnpackSourcesTask
 
 plugins {
-	id("net.fabricmc.fabric-loom-remap")
+	id("net.fabricmc.fabric-loom")
 	id("maven-publish")
 	id("signing")
 }
@@ -23,7 +23,7 @@ val loaderVersion = property("loader_version") as String
 val fabricApiVersion = property("fabric_api_version") as String
 val jcefGithubVersion = property("jcefgithub_version") as String
 val junitVersion = property("junit_version") as String
-val javaLanguageVersion: JavaLanguageVersion = JavaLanguageVersion.of(21)
+val javaLanguageVersion: JavaLanguageVersion = JavaLanguageVersion.of(25)
 val grapheneDebugSelector = (findProperty("grapheneDebug") as String?)
 	?.trim()
 	?.takeIf { it.isNotEmpty() }
@@ -116,8 +116,7 @@ loom {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft("com.mojang:minecraft:${minecraftVersion}")
-	mappings(loom.officialMojangMappings())
-	modImplementation("net.fabricmc:fabric-loader:${loaderVersion}")
+	implementation("net.fabricmc:fabric-loader:${loaderVersion}")
 	// JCEF.
 	implementation("io.github.trethore:jcefgithub:${jcefGithubVersion}:all-relocated") {
 		isTransitive = false
@@ -126,7 +125,7 @@ dependencies {
 	sourceDeps("io.github.trethore:jcefgithub:${jcefGithubVersion}:sources")
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation("net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}")
+	implementation("net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}")
 
 	testImplementation(platform("org.junit:junit-bom:${junitVersion}"))
 	testImplementation("org.junit.jupiter:junit-jupiter")
@@ -263,6 +262,7 @@ signing {
 
 val unpackedSourcesDir: Directory = layout.projectDirectory.dir("references")
 val minecraftCacheDirProvider: Directory = layout.projectDirectory.dir(".gradle/loom-cache/minecraftMaven")
+val sharedMinecraftCacheDirProvider: File = gradle.gradleUserHomeDir.resolve("caches/fabric-loom/minecraftMaven")
 val fabricCacheDirProvider: Directory = layout.projectDirectory.dir(".gradle/loom-cache/remapped_mods/remapped/net/fabricmc/fabric-api")
 
 val cleanSources by tasks.registering(Delete::class) {
@@ -284,5 +284,9 @@ val unpackSources by tasks.registering(UnpackSourcesTask::class) {
 	)
 	outputDir.set(unpackedSourcesDir)
 	minecraftCacheDir.set(minecraftCacheDirProvider)
+	if (sharedMinecraftCacheDirProvider.isDirectory) {
+		sharedMinecraftCacheDir.set(sharedMinecraftCacheDirProvider)
+	}
+	targetMinecraftVersion.set(minecraftVersion)
 	fabricCacheDir.set(fabricCacheDirProvider)
 }

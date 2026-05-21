@@ -1,6 +1,6 @@
 # Graphene Overview
 
-Graphene is a client-side UI library for Fabric mods on Minecraft `1.21.11`.
+Graphene is a client-side UI library for Fabric mods on Minecraft `26.1.2`.
 It embeds Chromium via JCEF, so you can render HTML/CSS/JS in Minecraft screens and communicate with Java code through a bridge.
 
 ![Graphene demo](images/demo.png)

@@ -1,7 +1,7 @@
 package tytoo.grapheneui.api.surface;
 
 import com.mojang.blaze3d.platform.cursor.CursorType;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.cef.CefBrowserSettings;
@@ -221,11 +221,11 @@ public final class BrowserSurface implements AutoCloseable {
         return sizingState.toBrowserY(surfaceY, renderedHeight);
     }
 
-    public void render(GuiGraphics guiGraphics, int x, int y) {
+    public void render(GuiGraphicsExtractor guiGraphics, int x, int y) {
         render(guiGraphics, x, y, sizingState.surfaceWidth(), sizingState.surfaceHeight());
     }
 
-    public void render(GuiGraphics guiGraphics, int x, int y, int width, int height) {
+    public void render(GuiGraphicsExtractor guiGraphics, int x, int y, int width, int height) {
         ProfilerFiller profiler = Profiler.get();
         profiler.push("graphene");
         try {
@@ -266,7 +266,7 @@ public final class BrowserSurface implements AutoCloseable {
         }
     }
 
-    private void pushRender(ProfilerFiller profiler, GuiGraphics guiGraphics, int x, int y, int width, int height) {
+    private void pushRender(ProfilerFiller profiler, GuiGraphicsExtractor guiGraphics, int x, int y, int width, int height) {
         profiler.push("render");
         try {
             browser.render(

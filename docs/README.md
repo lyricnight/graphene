@@ -1,14 +1,14 @@
 # Graphene Documentation
 
-Graphene is a client-side Chromium UI library for Fabric mods on Minecraft `1.21.11`.
+Graphene is a client-side Chromium UI library for Fabric mods on Minecraft `26.1.2`.
 This documentation is organized as a path from setup to advanced integration.
 
 Baseline requirements:
 
-- Java `21`
-- Minecraft `1.21.11`
-- Fabric Loader `0.18.4`
-- Fabric API `0.141.3+1.21.11`
+- Java `25`
+- Minecraft `26.1.2`
+- Fabric Loader `0.19.2`
+- Fabric API `0.149.1+26.1.2`
 - GPU baseline: NVIDIA GeForce GT 720 (or better)
 
 Recommended reading order:

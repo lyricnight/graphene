@@ -1,7 +1,7 @@
 package tytoo.grapheneui.internal.cef.startup;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -30,14 +30,14 @@ public final class GrapheneNativeDownloadOverlay extends Overlay {
     }
 
     @Override
-    public void render(@NonNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(@NonNull GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!state.isActive()) {
             return;
         }
 
         Screen currentScreen = McClient.currentScreen();
         if (currentScreen != null) {
-            currentScreen.renderWithTooltipAndSubtitles(guiGraphics, mouseX, mouseY, partialTick);
+            currentScreen.extractRenderStateWithTooltipAndSubtitles(guiGraphics, mouseX, mouseY, partialTick);
         }
 
         int width = guiGraphics.guiWidth();
@@ -50,7 +50,7 @@ public final class GrapheneNativeDownloadOverlay extends Overlay {
 
         guiGraphics.nextStratum();
         guiGraphics.fillGradient(0, 0, width, height, BACKGROUND_COLOR, BACKGROUND_COLOR);
-        guiGraphics.drawCenteredString(
+        guiGraphics.centeredText(
                 font,
                 title,
                 width / 2,

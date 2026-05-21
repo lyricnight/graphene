@@ -2,11 +2,7 @@ package tytoo.grapheneui.internal.browser;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.BlitRenderState;
-import net.minecraft.client.renderer.RenderPipelines;
-import org.joml.Matrix3x2f;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.awt.image.BufferedImage;
 import java.util.concurrent.CompletableFuture;
@@ -21,7 +17,7 @@ final class GrapheneBrowserGpuRenderer implements AutoCloseable {
     }
 
     void render(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             GraphenePaintBuffer.Snapshot snapshot,
             int x,
             int y,
@@ -115,7 +111,7 @@ final class GrapheneBrowserGpuRenderer implements AutoCloseable {
     }
 
     private void submitBlit(
-            GuiGraphics guiGraphics,
+            GuiGraphicsExtractor guiGraphics,
             GrapheneBrowserGpuTexture texture,
             int x,
             int y,
@@ -133,22 +129,17 @@ final class GrapheneBrowserGpuRenderer implements AutoCloseable {
         float v0 = (float) sourceY / textureHeight;
         float v1 = (float) (sourceY + sourceHeight) / textureHeight;
 
-        guiGraphics.guiRenderState.submitGuiElement(
-                new BlitRenderState(
-                        RenderPipelines.GUI_TEXTURED,
-                        TextureSetup.singleTexture(texture.view(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST)),
-                        new Matrix3x2f(guiGraphics.pose()),
-                        x,
-                        y,
-                        x + width,
-                        y + height,
-                        u0,
-                        u1,
-                        v0,
-                        v1,
-                        -1,
-                        guiGraphics.scissorStack.peek()
-                )
+        guiGraphics.blit(
+                texture.view(),
+                RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST),
+                x,
+                y,
+                x + width,
+                y + height,
+                u0,
+                u1,
+                v0,
+                v1
         );
     }
 }

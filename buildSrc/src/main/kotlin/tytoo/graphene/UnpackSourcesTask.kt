@@ -7,6 +7,7 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
 import org.gradle.process.ExecOperations
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
@@ -36,6 +37,14 @@ abstract class UnpackSourcesTask : DefaultTask() {
 	@get:Optional
 	@get:PathSensitive(PathSensitivity.RELATIVE)
 	abstract val minecraftCacheDir: DirectoryProperty
+
+	@get:InputDirectory
+	@get:Optional
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val sharedMinecraftCacheDir: DirectoryProperty
+
+	@get:Input
+	abstract val targetMinecraftVersion: Property<String>
 
 	@get:InputDirectory
 	@get:Optional
@@ -116,10 +125,15 @@ abstract class UnpackSourcesTask : DefaultTask() {
 	}
 
 	private fun unpackMinecraftSources(outputDirFile: File) {
-		val minecraftCacheRoot = resolveExistingDirectory(minecraftCacheDir)
+		val minecraftCacheRoots = listOfNotNull(
+			resolveExistingDirectory(minecraftCacheDir),
+			resolveExistingDirectory(sharedMinecraftCacheDir)
+		).distinctBy { it.canonicalFile }
+		val minecraftVersion = targetMinecraftVersion.get()
 		val minecraftSources = listOfNotNull(
-			findNewestSourceJar(minecraftCacheRoot, "minecraft-common-")?.let { "common" to it },
-			findNewestSourceJar(minecraftCacheRoot, "minecraft-clientOnly-")?.let { "client" to it }
+			findNewestSourceJar(minecraftCacheRoots, "minecraft-merged-deobf-", minecraftVersion)?.let { "merged" to it },
+			findNewestSourceJar(minecraftCacheRoots, "minecraft-common-", minecraftVersion)?.let { "common" to it },
+			findNewestSourceJar(minecraftCacheRoots, "minecraft-clientOnly-", minecraftVersion)?.let { "client" to it }
 		)
 
 		if (minecraftSources.isEmpty()) {
@@ -224,19 +238,25 @@ abstract class UnpackSourcesTask : DefaultTask() {
 		return ensureDirectory(directory)
 	}
 
-	private fun findNewestSourceJar(root: File?, prefix: String): File? {
-		if (root == null) {
+	private fun findNewestSourceJar(roots: List<File>, prefix: String, minecraftVersion: String): File? {
+		if (roots.isEmpty()) {
 			return null
 		}
 
-		return root.walkTopDown()
+		return roots.asSequence()
+			.flatMap { root -> root.walkTopDown().asSequence() }
 			.filter { file ->
 				file.isFile &&
 					file.name.startsWith(prefix) &&
 					file.name.endsWith(SOURCES_JAR_SUFFIX) &&
+					isMinecraftSourceForVersion(file, minecraftVersion) &&
 					!file.name.endsWith(".backup.jar")
 			}
 			.maxByOrNull(File::lastModified)
+	}
+
+	private fun isMinecraftSourceForVersion(file: File, minecraftVersion: String): Boolean {
+		return file.name.contains(minecraftVersion) || file.parentFile?.absolutePath.orEmpty().contains(minecraftVersion)
 	}
 
 	private fun findSourceJars(root: File, predicate: (File) -> Boolean): List<File> {

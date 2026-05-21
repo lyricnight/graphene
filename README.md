@@ -2,10 +2,10 @@
 
 [![Loader: Fabric](https://img.shields.io/badge/Loader-Fabric-00BFA5?style=for-the-badge&logo=fabric)](https://modrinth.com/mod/fabric-api)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Minecraft: 1.21.11](https://img.shields.io/badge/Minecraft-1.21.11-5E8C31?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/)
+[![Minecraft: 26.1.2](https://img.shields.io/badge/Minecraft-26.1.2-5E8C31?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Graphene-1BD96A?style=for-the-badge&logo=modrinth)](https://modrinth.com/mod/grapheneui)
 
-Graphene is a client-side UI library for Minecraft 1.21.11 (Fabric) that lets mod developers build interfaces with web technologies.
+Graphene is a client-side UI library for Minecraft 26.1.2 (Fabric) that lets mod developers build interfaces with web technologies.
 It embeds Chromium through JCEF, so you can render HTML/CSS/JavaScript UIs in-game while keeping a clean Java API for mod integration.
 
 ![Graphene demo](docs/images/demo.png)
@@ -19,13 +19,13 @@ Instead of writing every screen directly with Minecraft rendering primitives, yo
 - build rich, responsive interfaces using browser capabilities;
 - connect those interfaces to your mod logic through Graphene's API;
 - iterate on UI faster with familiar web tooling and patterns;
-- keep the integration focused on Fabric + Minecraft 1.21.11.
+- keep the integration focused on Fabric + Minecraft 26.1.2.
 
 In short: Graphene gives Fabric mods a practical way to use web-powered interfaces without reinventing a full UI stack inside the game.
 
 ## Requirements
 
-- Java: `21`
+- Java: `25`
 - GPU: `NVIDIA GeForce GT 720` or better
 - For macOS users: macOS 12 (Monterey) or later
 
