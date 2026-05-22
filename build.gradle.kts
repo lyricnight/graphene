@@ -2,6 +2,7 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.attributes.Category
 import org.gradle.api.attributes.DocsType
 import org.gradle.api.provider.Provider
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLauncher
@@ -24,12 +25,24 @@ val fabricApiVersion = property("fabric_api_version") as String
 val jcefGithubVersion = property("jcefgithub_version") as String
 val junitVersion = property("junit_version") as String
 val javaLanguageVersion: JavaLanguageVersion = JavaLanguageVersion.of(25)
+val isJitPackBuild: Boolean = System.getenv("JITPACK") == "true"
+val jitPackGroup: String? = System.getenv("GROUP")?.trim()?.takeIf { it.isNotEmpty() }
+val jitPackArtifact: String? = System.getenv("ARTIFACT")?.trim()?.takeIf { it.isNotEmpty() }
+val jitPackVersion: String? = System.getenv("VERSION")?.trim()?.takeIf { it.isNotEmpty() }
+val publishingGroup: String = if (isJitPackBuild) jitPackGroup ?: mavenGroup else mavenGroup
+val publishingArtifactId: String = if (isJitPackBuild) jitPackArtifact ?: archivesBaseName else archivesBaseName
+val publishingVersion: String = if (isJitPackBuild) jitPackVersion ?: modVersion else modVersion
 val grapheneDebugSelector = (findProperty("grapheneDebug") as String?)
 	?.trim()
 	?.takeIf { it.isNotEmpty() }
 val githubUsername: String? = (findProperty("gpr.user") as String?) ?: System.getenv("GITHUB_ACTOR")
 val githubToken: String? = (findProperty("gpr.key") as String?) ?: System.getenv("GITHUB_TOKEN")
 val githubRepository = (findProperty("gpr.repo") as String?) ?: System.getenv("GITHUB_REPOSITORY") ?: "trethore/graphene"
+val publishingRepository: String = if (isJitPackBuild && publishingGroup.startsWith("com.github.")) {
+	"${publishingGroup.removePrefix("com.github.")}/$publishingArtifactId"
+} else {
+	githubRepository
+}
 val mavenCentralUsername: String? = (findProperty("mavenCentralUsername") as String?)
 	?: System.getenv("MAVEN_CENTRAL_USERNAME")
 val mavenCentralPassword: String? = (findProperty("mavenCentralPassword") as String?)
@@ -38,9 +51,13 @@ val mavenCentralSigningKey: String? = (findProperty("mavenCentralSigningKey") as
 	?: System.getenv("MAVEN_GPG_PRIVATE_KEY")
 val mavenCentralSigningPassphrase: String? = (findProperty("mavenCentralSigningPassphrase") as String?)
 	?: System.getenv("MAVEN_GPG_PASSPHRASE")
+val publishMavenCentral: Boolean = ((findProperty("publishMavenCentral") as String?)
+	?: System.getenv("PUBLISH_MAVEN_CENTRAL"))
+	?.toBooleanStrictOrNull()
+	?: false
 val isMavenCentralPublishRequested: Boolean = gradle.startParameter.taskNames.any { taskName ->
-	taskName == "publish" || taskName.contains("MavenCentral", ignoreCase = true)
-}
+	taskName.contains("MavenCentral", ignoreCase = true)
+} || publishMavenCentral
 
 version = modVersion
 group = mavenGroup
@@ -187,16 +204,18 @@ tasks.jar {
 publishing {
 	publications {
 		create<MavenPublication>("mavenJava") {
-			artifactId = archivesBaseName
+			groupId = publishingGroup
+			artifactId = publishingArtifactId
+			version = publishingVersion
 			from(components["java"])
 			pom {
 				name.set("Graphene UI")
 				description.set("Client-side Chromium-based UI library for Minecraft Fabric mods.")
-				url.set("https://github.com/trethore/graphene")
+				url.set("https://github.com/$publishingRepository")
 				licenses {
 					license {
 						name.set("MIT License")
-						url.set("https://github.com/trethore/graphene/blob/main/LICENSE")
+						url.set("https://github.com/$publishingRepository/blob/main/LICENSE")
 					}
 				}
 				developers {
@@ -207,9 +226,9 @@ publishing {
 					}
 				}
 				scm {
-					connection.set("scm:git:git://github.com/trethore/graphene.git")
-					developerConnection.set("scm:git:ssh://git@github.com/trethore/graphene.git")
-					url.set("https://github.com/trethore/graphene")
+					connection.set("scm:git:git://github.com/$publishingRepository.git")
+					developerConnection.set("scm:git:ssh://git@github.com/$publishingRepository.git")
+					url.set("https://github.com/$publishingRepository")
 				}
 			}
 		}
@@ -229,6 +248,12 @@ publishing {
 			name = "MavenCentral"
 			url = layout.buildDirectory.dir("central-portal/staging").get().asFile.toURI()
 		}
+	}
+}
+
+tasks.withType<PublishToMavenRepository>().configureEach {
+	onlyIf {
+		repository.name != "MavenCentral" || isMavenCentralPublishRequested
 	}
 }
 

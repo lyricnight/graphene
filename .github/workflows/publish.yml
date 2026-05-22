@@ -6,7 +6,7 @@ on:
       publish_target:
         description: Which publish and release actions to run
         required: true
-        default: all
+        default: release-github
         type: choice
         options:
           - all
