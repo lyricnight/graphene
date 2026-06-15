@@ -19,9 +19,13 @@ final class GrapheneCefInitializationDispatcher {
         this.dispatchToAwtEventThread = dispatchToAwtEventThread;
     }
 
+    boolean isDispatchThread() {
+        return EventQueue.isDispatchThread();
+    }
+
     <T> T dispatch(Callable<T> task) {
         Callable<T> validatedTask = Objects.requireNonNull(task, "task");
-        if (!dispatchToAwtEventThread || EventQueue.isDispatchThread()) {
+        if (!dispatchToAwtEventThread || isDispatchThread()) {
             return call(validatedTask);
         }
 
