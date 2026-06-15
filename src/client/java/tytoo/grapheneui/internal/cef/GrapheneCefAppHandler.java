@@ -4,6 +4,8 @@ import io.github.trethore.jcefgithub.MavenCefAppHandlerAdapter;
 import org.cef.CefApp;
 import org.cef.browser.CefRequestContext;
 import org.cef.callback.CefSchemeRegistrar;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tytoo.grapheneui.api.config.GrapheneFileSystemAccessMode;
 import tytoo.grapheneui.api.url.GrapheneClasspathUrls;
 import tytoo.grapheneui.internal.platform.GraphenePlatform;
@@ -12,6 +14,7 @@ import tytoo.grapheneui.internal.url.GrapheneAppUrls;
 import java.util.Objects;
 
 public final class GrapheneCefAppHandler extends MavenCefAppHandlerAdapter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GrapheneCefAppHandler.class);
     private static final String APP_SCHEME_NAME = GrapheneAppUrls.SCHEME;
     private static final String CLASSPATH_SCHEME_NAME = GrapheneClasspathUrls.SCHEME;
     private static final String FILE_SYSTEM_READ_GUARD_PREFERENCE =
@@ -54,6 +57,14 @@ public final class GrapheneCefAppHandler extends MavenCefAppHandlerAdapter {
             cefApp.registerSchemeHandlerFactory(APP_SCHEME_NAME, "", schemeHandlerFactory);
             cefApp.registerSchemeHandlerFactory(CLASSPATH_SCHEME_NAME, "", schemeHandlerFactory);
             schemeHandlerRegistered = true;
+        }
+    }
+
+    @Override
+    public void stateHasChanged(CefApp.CefAppState state) {
+        super.stateHasChanged(state);
+        if (state == CefApp.CefAppState.TERMINATED) {
+            LOGGER.info("CEF native runtime terminated");
         }
     }
 

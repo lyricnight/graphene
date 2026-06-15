@@ -19,21 +19,16 @@ final class GrapheneCefClientConfig {
     static void configure(
             CefClient cefClient,
             GrapheneLoadEventBus loadEventBus,
-            GrapheneBridgeRuntime bridgeRuntime,
-            GrapheneCefBrowserShutdownTracker shutdownTracker
+            GrapheneBridgeRuntime bridgeRuntime
     ) {
         CefClient validatedClient = Objects.requireNonNull(cefClient, "cefClient");
         GrapheneLoadEventBus validatedLoadEventBus = Objects.requireNonNull(loadEventBus, "loadEventBus");
         GrapheneBridgeRuntime validatedBridgeRuntime = Objects.requireNonNull(bridgeRuntime, "bridgeRuntime");
-        GrapheneCefBrowserShutdownTracker validatedShutdownTracker = Objects.requireNonNull(
-                shutdownTracker,
-                "shutdownTracker"
-        );
         GrapheneJsDialogManager jsDialogManager = new GrapheneJsDialogManager();
         GrapheneFolderUploadDialogManager folderUploadDialogManager = new GrapheneFolderUploadDialogManager();
         GrapheneCefDownloadHandler downloadHandler = new GrapheneCefDownloadHandler();
         GrapheneCefKeyboardHandler keyboardHandler = new GrapheneCefKeyboardHandler();
-        GrapheneCefLifeSpanHandler lifeSpanHandler = new GrapheneCefLifeSpanHandler(validatedShutdownTracker);
+        GrapheneCefLifeSpanHandler lifeSpanHandler = new GrapheneCefLifeSpanHandler();
         GrapheneCefRequestHandler requestHandler = new GrapheneCefRequestHandler();
 
         validatedClient.addLoadHandler(new GrapheneCefLoadHandler(validatedLoadEventBus, validatedBridgeRuntime));

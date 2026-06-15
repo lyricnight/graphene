@@ -9,12 +9,6 @@ import tytoo.grapheneui.internal.mc.McClient;
 final class GrapheneCefLifeSpanHandler extends CefLifeSpanHandlerAdapter {
     private static final GrapheneDebugLogger DEBUG_LOGGER = GrapheneDebugLogger.of(GrapheneCefLifeSpanHandler.class);
 
-    private final GrapheneCefBrowserShutdownTracker shutdownTracker;
-
-    GrapheneCefLifeSpanHandler(GrapheneCefBrowserShutdownTracker shutdownTracker) {
-        this.shutdownTracker = shutdownTracker;
-    }
-
     @Override
     public boolean onBeforePopup(CefBrowser browser, CefFrame ignoredFrame, String targetUrl, String targetFrameName) {
         if (browser == null) {
@@ -29,15 +23,5 @@ final class GrapheneCefLifeSpanHandler extends CefLifeSpanHandlerAdapter {
         McClient.runOnMainThread(() -> browser.loadURL(targetUrl));
         DEBUG_LOGGER.debug("Redirected popup request into current browser targetUrl={} targetFrame={}", targetUrl, targetFrameName);
         return true;
-    }
-
-    @Override
-    public void onAfterCreated(CefBrowser browser) {
-        shutdownTracker.onAfterCreated(browser);
-    }
-
-    @Override
-    public void onBeforeClose(CefBrowser browser) {
-        shutdownTracker.onBeforeClose(browser);
     }
 }
