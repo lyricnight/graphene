@@ -1,9 +1,9 @@
 package tytoo.grapheneui.internal.browser;
 
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
 
 final class GrapheneBrowserGpuTexture implements AutoCloseable {
     private static final long NEVER_UPLOADED = Long.MIN_VALUE;
@@ -26,7 +26,7 @@ final class GrapheneBrowserGpuTexture implements AutoCloseable {
         texture = RenderSystem.getDevice().createTexture(
                 () -> label,
                 GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING,
-                TextureFormat.RGBA8,
+                GpuFormat.RGBA8_UNORM,
                 width,
                 height,
                 1,

@@ -60,19 +60,19 @@ public final class McClient {
     }
 
     public static Screen currentScreen() {
-        return mc().screen;
+        return mc().gui.screen();
     }
 
     public static void setScreen(Screen screen) {
-        mc().setScreen(screen);
+        mc().gui.setScreen(screen);
     }
 
     public static Overlay currentOverlay() {
-        return mc().getOverlay();
+        return mc().gui.overlay();
     }
 
     public static void setOverlay(Overlay overlay) {
-        mc().setOverlay(overlay);
+        mc().gui.setOverlay(overlay);
     }
 
     public static int windowWidth() {

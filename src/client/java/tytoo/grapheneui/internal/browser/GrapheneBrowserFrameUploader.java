@@ -161,7 +161,6 @@ final class GrapheneBrowserFrameUploader {
         RenderSystem.getDevice().createCommandEncoder().writeToTexture(
                 texture,
                 converted,
-                NativeImage.Format.RGBA,
                 0,
                 0,
                 0,
@@ -183,7 +182,6 @@ final class GrapheneBrowserFrameUploader {
                 encoder.writeToTexture(
                         texture,
                         converted,
-                        NativeImage.Format.RGBA,
                         0,
                         0,
                         clampedRect.x,

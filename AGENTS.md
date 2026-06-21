@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Graphene is a modern, client-side, Chromium-based UI library for Minecraft 1.21.11 that runs on the Fabric mod loader.
+Graphene is a modern, client-side, Chromium-based UI library for Minecraft 26.2 that runs on the Fabric mod loader.
 Its goal is to provide a simple yet powerful API for mod developers to create rich, web-based user interfaces in
 Minecraft using JCEF.
 
@@ -31,7 +31,7 @@ Here is the structure of the repository:
 
 ## General Coding Conventions
 
-- Target Java 21, use 4-space indentation, and keep packages under `tytoo.grapheneui*`.
+- Target Java 25, use 4-space indentation, and keep packages under `tytoo.grapheneui*`.
 - Prefer explicit types instead of `var`, and use descriptive names rather than one-letter identifiers.
 - Keep member order consistent in Java classes: static constants, static fields, instance fields, constructors, overridden
   methods, public methods, protected and private helper methods, then getters and setters at the bottom.
@@ -42,10 +42,10 @@ Here is the structure of the repository:
 - Assume contributors use IntelliJ IDEA, and keep code free of IDE warnings.
 - If requirements are unclear or infeasible, ask for clarification before proceeding.
 
-## Java 21 Expectations
+## Java 25 Expectations
 
-- Assume Java 21 at runtime; use only stable features and avoid preview or incubator APIs.
-- Use modern Java 21 standard-library utilities (Streams, Optional, records) when they improve clarity.
+- Assume Java 25 at runtime; use only stable features and avoid preview or incubator APIs.
+- Use modern Java 25 standard-library utilities (Streams, Optional, records) when they improve clarity.
 - Use descriptive names like `ignored` for intentionally unused variables, parameters, and caught exceptions.
 - When intentionally ignoring a caught exception, keep a short explanatory comment in the catch block.
 - Maintain explicit, readable control flow; avoid clever constructs that harm comprehension.
@@ -60,13 +60,6 @@ Here is the structure of the repository:
   keeping identifiers in the `GrapheneCore.ID` or `GrapheneDebugClient.ID` namespace as appropriate.
 - Integrate through established abstractions unless explicitly extending them.
 - Never reference loaders, mappings, or game versions beyond the configured target without explicit user approval.
-
-## Testing & Verification
-
-- Do not run Gradle commands yourself; instead provide the exact command for the user to execute and state tooling limitations clearly.
-- Encourage running `./gradlew compileJava`, `./gradlew test` and `/graphene test` in-game to validate changes,
-  `./gradlew build` for full validation, and `./gradlew runDebugClient` to test UI flows.
-- Document manual validation steps and remaining risks before completing work.
 
 ## Dependencies & External Sources
 

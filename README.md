@@ -5,9 +5,9 @@
 [![Minecraft: 26.1.2](https://img.shields.io/badge/Minecraft-26.1.2-5E8C31?style=for-the-badge&logo=minecraft)](https://www.minecraft.net/)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Graphene-1BD96A?style=for-the-badge&logo=modrinth)](https://modrinth.com/mod/grapheneui)
 
-### This fork of graphene I created to quickly and dirtily port Graphene to Minecraft 26.1+ and Java 25. The main project has not been ported yet.
+### This fork of graphene I created to quickly and dirtily port Graphene to Minecraft 26.2 and Java 25. The main project has not been ported yet.
 
-Graphene is a client-side UI library for Minecraft 26.1.2 (Fabric) that lets mod developers build interfaces with web technologies.
+Graphene is a client-side UI library for Minecraft 26.2 (Fabric) that lets mod developers build interfaces with web technologies.
 It embeds Chromium through JCEF, so you can render HTML/CSS/JavaScript UIs in-game while keeping a clean Java API for mod integration.
 
 ![Graphene demo](docs/images/demo.png)
